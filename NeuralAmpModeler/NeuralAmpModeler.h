@@ -31,24 +31,28 @@ enum EParams
 {
   // These need to be the first ones because I use their indices to place
   // their rects in the GUI.
-  kInputLevel = 0,
-  kNoiseGateThreshold,
+
+  kNoiseGateThreshold = 0,  
+  kNoiseGateActive,
+  kInputLevel,
   kToneBass,
   kToneMid,
   kToneTreble,
-  kOutputLevel,
-  // The rest is fine though.
-  kNoiseGateActive,
   kEQActive,
+
+  kOutputLevel,
+
+  // The rest is fine though. 
   kIRToggle,
   // Input calibration
   kCalibrateInput,
   kInputCalibrationLevel,
+  kPrePostEQ, // Pre or Post EQ
   kOutputMode,
   kNumParams
 };
 
-const int numKnobs = 6;
+const int numKnobs = 8;
 
 enum ECtrlTags
 {

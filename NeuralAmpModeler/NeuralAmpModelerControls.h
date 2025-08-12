@@ -6,8 +6,8 @@
 #include "IControls.h"
 
 #define PLUG() static_cast<PLUG_CLASS_NAME*>(GetDelegate())
-#define NAM_KNOB_HEIGHT 120.0f
-#define NAM_SWTICH_HEIGHT 50.0f
+#define NAM_KNOB_HEIGHT 65.0f
+#define NAM_SWTICH_HEIGHT 80.0f
 
 using namespace iplug;
 using namespace igraphics;
@@ -60,6 +60,7 @@ public:
   }
 };
 
+
 class NAMKnobControl : public IVKnobControl, public IBitmapBase
 {
 public:
@@ -67,29 +68,80 @@ public:
   : IVKnobControl(bounds, paramIdx, label, style, true)
   , IBitmapBase(bitmap)
   {
-    mInnerPointerFrac = 0.55;
+    // The following line is no longer needed as we are not drawing a vector pointer.
+    // mInnerPointerFrac = 0.55;
   }
 
   void OnRescale() override { mBitmap = GetUI()->GetScaledBitmap(mBitmap); }
 
+  // The entire DrawWidget method is replaced with this new version.
   void DrawWidget(IGraphics& g) override
   {
-    float widgetRadius = GetRadius() * 0.73;
-    auto knobRect = mWidgetBounds.GetCentredInside(mWidgetBounds.W(), mWidgetBounds.W());
-    const float cx = knobRect.MW(), cy = knobRect.MH();
-    const float angle = mAngle1 + (static_cast<float>(GetValue()) * (mAngle2 - mAngle1));
-    DrawIndicatorTrack(g, angle, cx + 0.5, cy, widgetRadius);
-    g.DrawFittedBitmap(mBitmap, knobRect);
-    float data[2][2];
-    RadialPoints(angle, cx, cy, mInnerPointerFrac * widgetRadius, mInnerPointerFrac * widgetRadius, 2, data);
-    g.PathCircle(data[1][0], data[1][1], 3);
-    g.PathFill(IPattern::CreateRadialGradient(data[1][0], data[1][1], 4.0f,
-                                              {{GetColor(mMouseIsOver ? kX3 : kX1), 0.f},
-                                               {GetColor(mMouseIsOver ? kX3 : kX1), 0.8f},
-                                               {COLOR_TRANSPARENT, 1.0f}}),
-               {}, &mBlend);
-    g.DrawCircle(COLOR_BLACK.WithOpacity(0.5f), data[1][0], data[1][1], 3, &mBlend);
+    const int numFrames = mBitmap.N();
+    if (numFrames > 1)
+    {
+      // This calculation maps the knob's value [0, 1] to the frame index [0, numFrames - 1]
+      // and rounds to the nearest whole number. This provides a more even distribution
+      // of values to frames, resulting in a smoother animation.
+      const int frameIdx = static_cast<int>(GetValue() * (numFrames - 1) + 0.5);
+
+      // Draw the single, correct frame of the bitmap, centered in the widget area.
+      g.DrawBitmap(mBitmap, mWidgetBounds.GetCentredInside(mBitmap), frameIdx, &mBlend);
+    }
+    else // Fallback for a single-frame bitmap
+    {
+      g.DrawBitmap(mBitmap, mWidgetBounds.GetCentredInside(mBitmap), 0, &mBlend);
+    }
   }
+};
+
+
+class NAMBitmapSwitchControl : public IVToggleControl
+{
+public:
+  NAMBitmapSwitchControl(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style,
+                         const IBitmap& bitmapOff, const IBitmap& bitmapOn)
+  : IVToggleControl(bounds, paramIdx, label, style)
+  , mBitmapOff(bitmapOff)
+  , mBitmapOn(bitmapOn)
+  {
+  }
+
+  void OnRescale() override
+  {
+    mBitmapOn = GetUI()->GetScaledBitmap(mBitmapOn);
+    mBitmapOff = GetUI()->GetScaledBitmap(mBitmapOff);
+  }
+
+  // This method is updated to correctly calculate all layout bounds.
+  void OnResize() override
+  {
+    // Let the base class calculate the label bounds first.
+    IVToggleControl::OnResize();
+
+    // Now, we explicitly define the value and widget bounds to ensure correct layout.
+    if (mStyle.showValue)
+    {
+      // The value text is positioned at the bottom of the control's total area.
+      mValueBounds = mRECT.GetFromBottom(mStyle.valueText.mSize);
+
+      // The widget area is defined as the space between the bottom of the label
+      // and the top of the newly positioned value text.
+      mWidgetBounds.T = mLabelBounds.B;
+      mWidgetBounds.B = mValueBounds.T;
+    }
+  }
+
+  void DrawWidget(IGraphics& g) override
+  {
+    const IBitmap& bitmapToDraw = (GetValue() < 0.5) ? mBitmapOff : mBitmapOn;
+    const IRECT centeredBounds = mWidgetBounds.GetCentredInside(bitmapToDraw);
+    g.DrawBitmap(bitmapToDraw, centeredBounds, 0, 0, nullptr);
+  }
+
+private:
+  IBitmap mBitmapOff;
+  IBitmap mBitmapOn;
 };
 
 class NAMSwitchControl : public IVSlideSwitchControl, public IBitmapBase
@@ -209,7 +261,7 @@ public:
       }
     };
 
-    auto ellipsizedFileName = EllipsizeFilePath(fileName.get_filepart(), 22, 22, 45);
+    auto ellipsizedFileName = EllipsizeFilePath(fileName.get_filepart(), 32, 32, 60);
     SetLabelStr(ellipsizedFileName.c_str());
     SetTooltip(fileName.get_filepart());
   }
@@ -573,12 +625,12 @@ public:
 
   void OnAttached() override
   {
-    AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(4, 0), "Model information:", mStyle));
-    AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(4, 1), "", mStyle), mControlNames.sampleRate);
-    // AddNamedChildControl(
-    //   new IVLabelControl(GetRECT().SubRectVertical(4, 2), "", mStyle), mControlNames.inputCalibrationLevel);
-    // AddNamedChildControl(
-    //   new IVLabelControl(GetRECT().SubRectVertical(4, 3), "", mStyle), mControlNames.outputCalibrationLevel);
+    AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 0), "MODEL INFORMATION:", mStyle));
+    AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 1), "", mStyle), mControlNames.sampleRate);
+     AddNamedChildControl(
+       new IVLabelControl(GetRECT().SubRectVertical(8, 2), "", mStyle), mControlNames.inputCalibrationLevel);
+     AddNamedChildControl(
+       new IVLabelControl(GetRECT().SubRectVertical(8, 3), "", mStyle), mControlNames.outputCalibrationLevel);
   };
 
   void SetModelInfo(const ModelInfo& modelInfo)
@@ -599,10 +651,10 @@ public:
     };
 
     SetControlStr("Sample rate", modelInfo.sampleRate, "Hz", mControlNames.sampleRate);
-    // SetControlStr(
-    //   "Input calibration level", modelInfo.inputCalibrationLevel, "dBu", mControlNames.inputCalibrationLevel);
-    // SetControlStr(
-    //   "Output calibration level", modelInfo.outputCalibrationLevel, "dBu", mControlNames.outputCalibrationLevel);
+     SetControlStr(
+       "Input calibration level", modelInfo.inputCalibrationLevel, "dBu", mControlNames.inputCalibrationLevel);
+     SetControlStr(
+       "Output calibration level", modelInfo.outputCalibrationLevel, "dBu", mControlNames.outputCalibrationLevel);
 
     mHasInfo = true;
   };
@@ -612,8 +664,8 @@ private:
   struct
   {
     const std::string sampleRate = "sampleRate";
-    // const std::string inputCalibrationLevel = "inputCalibrationLevel";
-    // const std::string outputCalibrationLevel = "outputCalibrationLevel";
+     const std::string inputCalibrationLevel = "inputCalibrationLevel";
+     const std::string outputCalibrationLevel = "outputCalibrationLevel";
   } mControlNames;
   // Do I have info?
   bool mHasInfo = false;
@@ -654,13 +706,15 @@ class NAMSettingsPageControl : public IContainerBaseWithNamedChildren
 {
 public:
   NAMSettingsPageControl(const IRECT& bounds, const IBitmap& bitmap, const IBitmap& inputLevelBackgroundBitmap,
-                         const IBitmap& switchBitmap, ISVG closeSVG, const IVStyle& style,
+                         const IBitmap& switchBitmap, const IBitmap& bitmapOff, const IBitmap& bitmapOn, ISVG closeSVG, const IVStyle& style,
                          const IVStyle& radioButtonStyle)
   : IContainerBaseWithNamedChildren(bounds)
   , mAnimationTime(0)
   , mBitmap(bitmap)
   , mInputLevelBackgroundBitmap(inputLevelBackgroundBitmap)
   , mSwitchBitmap(switchBitmap)
+  , mBitmapOff(bitmapOff)
+  , mBitmapOn(bitmapOn)
   , mStyle(style)
   , mRadioButtonStyle(radioButtonStyle)
   , mCloseSVG(closeSVG)
@@ -729,26 +783,55 @@ public:
                                  .WithShadowOffset(2.f);
     const auto text = IText(DEFAULT_TEXT_SIZE, EAlign::Center, PluginColors::HELP_TEXT);
     const auto leftText = text.WithAlign(EAlign::Near);
-    const auto style = mStyle.WithDrawFrame(false).WithValueText(text);
+    const auto style =
+      mStyle.WithDrawFrame(false).WithValueText(text).WithValueText(IText(30, COLOR_WHITE, "Roboto-Regular"));
     const IVStyle leftStyle = style.WithValueText(leftText);
 
     AddNamedChildControl(new IBitmapControl(GetRECT(), mBitmap), mControlNames.bitmap)->SetIgnoreMouse(true);
     const auto titleArea = GetRECT().GetPadded(-(pad + 10.0f)).GetFromTop(50.0f);
     AddNamedChildControl(new IVLabelControl(titleArea, "SETTINGS", titleStyle), mControlNames.title);
 
+    
+    
+
     // Attach input/output calibration controls
     {
-      const float height = NAM_KNOB_HEIGHT + NAM_SWTICH_HEIGHT + 10.0f;
-      const float width = titleArea.W();
-      const auto inputOutputArea = titleArea.GetFromBottom(height).GetTranslated(0.0f, height);
-      const auto inputArea = inputOutputArea.GetFromLeft(0.5f * width);
-      const auto outputArea = inputOutputArea.GetFromRight(0.5f * width);
+      // Define the main area for the controls, below the title
+      const auto controlsArea = GetRECT().GetPadded(-pad).GetReducedFromTop(titleArea.B + 20.f).GetVShifted(75.f);
 
-      const float knobWidth = 87.0f; // HACK based on looking at the main page knobs.
-      const auto inputLevelArea =
-        inputArea.GetFromTop(NAM_KNOB_HEIGHT).GetFromBottom(25.0f).GetMidHPadded(0.5f * knobWidth);
-      const auto inputSwitchArea = inputArea.GetFromBottom(NAM_SWTICH_HEIGHT).GetMidHPadded(0.5f * knobWidth);
+      // Split this area into left and right halves
+      const auto inputArea = controlsArea.GetFromLeft(controlsArea.W() * 0.5f);
+      const auto outputArea = controlsArea.GetFromRight(controlsArea.W() * 0.5f);
 
+      // --- Left side controls (Input) ---
+      const float inputControlWidth = 120.f;
+      const float inputControlHeight = 30.f;
+
+
+      // Area for the "Calibrate Input" text field
+      auto inputLevelArea = inputArea.GetFromTop(inputControlHeight)
+                              .GetCentredInside(inputControlWidth, inputControlHeight)
+                              .GetVShifted(20.f);
+
+      // Area for the switch, positioned directly below the input level field.
+      const float switchHeight = 80.f;
+      const float spacing = 10.f;
+      auto inputSwitchArea = inputLevelArea.GetVShifted(inputLevelArea.H() + spacing);
+      inputSwitchArea.B = inputSwitchArea.T + switchHeight;
+      
+
+
+      // --- Right side controls (Output) ---
+      const float outputControlWidth = 150.f;
+      const float outputControlHeight = 100.f; // Taller to accommodate the radio buttons
+
+      // Area for the "Output Mode" radio buttons
+      auto outputRadioArea =
+        outputArea.GetFromTop(outputControlHeight).GetCentredInside(outputControlWidth, outputControlHeight);
+      // Align the top of the output area with the top of the input area
+      outputRadioArea.VAlignTo(inputLevelArea, EVAlign::Top);
+
+      // --- Attach the controls using these new areas ---
       auto* inputLevelControl = AddNamedChildControl(
         new InputLevelControl(inputLevelArea, kInputCalibrationLevel, mInputLevelBackgroundBitmap, text),
         mControlNames.inputCalibrationLevel, kCtrlTagInputCalibrationLevel);
@@ -756,12 +839,9 @@ public:
         "The analog level, in dBu RMS, that corresponds to digital level of 0 dBFS peak in the host as its signal "
         "enters this plugin.");
       AddNamedChildControl(
-        new NAMSwitchControl(inputSwitchArea, kCalibrateInput, "Calibrate Input", mStyle, mSwitchBitmap),
+        new NAMBitmapSwitchControl(inputSwitchArea, kCalibrateInput, "Calibrate Input", mStyle, mBitmapOff, mBitmapOn),
         mControlNames.calibrateInput, kCtrlTagCalibrateInput);
 
-      // Same-ish height & width as input controls
-      const auto outputRadioArea = outputArea.GetFromBottom(
-        1.1f * (inputLevelArea.H() + inputSwitchArea.H())); // .GetMidHPadded(0.55f * knobWidth);
       const float buttonSize = 10.0f;
       auto* outputModeControl =
         AddNamedChildControl(new OutputModeControl(outputRadioArea, kOutputMode, mRadioButtonStyle, buttonSize),
@@ -774,8 +854,18 @@ public:
     const float halfWidth = PLUG_WIDTH / 2.0f - pad;
     const auto bottomArea = GetRECT().GetPadded(-pad).GetFromBottom(78.0f);
     const float lineHeight = 15.0f;
-    const auto modelInfoArea = bottomArea.GetFromLeft(halfWidth).GetFromTop(4 * lineHeight);
-    const auto aboutArea = bottomArea.GetFromRight(halfWidth).GetFromTop(5 * lineHeight);
+    //const auto modelInfoArea =bottomArea.GetFromLeft(200.0f).GetFromTop(4 * lineHeight).GetVShifted(-100.f);    ;
+    //const auto aboutArea = bottomArea.GetFromRight(halfWidth +100.0f).GetFromTop(7 * lineHeight).GetVShifted(-100.f);
+
+    // Define the aboutArea first, as its position on the right is the anchor.
+    const auto aboutArea = bottomArea.GetFromRight(halfWidth + 50.0f).GetFromTop(7 * lineHeight).GetVShifted(-100.f);
+
+    // Now, define the modelInfoArea to be positioned to the left of the aboutArea.
+    const float modelInfoWidth = 250.f; // The desired width for the model info box.
+    const float spacing = 10.f; // The gap between the two text boxes.
+    auto modelInfoArea = aboutArea.GetTranslated(-(modelInfoWidth + spacing), 0.f);
+    modelInfoArea.R = modelInfoArea.L + modelInfoWidth; // Set the width of the modelInfoArea.
+
     AddNamedChildControl(new ModelInfoControl(modelInfoArea, leftStyle), mControlNames.modelInfo);
     AddNamedChildControl(new AboutControl(aboutArea, leftStyle, leftText), mControlNames.about);
 
@@ -799,6 +889,8 @@ private:
   IBitmap mBitmap;
   IBitmap mInputLevelBackgroundBitmap;
   IBitmap mSwitchBitmap;
+  IBitmap mBitmapOff;
+  IBitmap mBitmapOn;
   IVStyle mStyle;
   IVStyle mRadioButtonStyle;
   ISVG mCloseSVG;
@@ -880,15 +972,20 @@ private:
 
       buildInfoStr.SetFormatted(100, "Version %s %s %s", verStr.Get(), PLUG()->GetArchStr(), PLUG()->GetAPIStr());
 
-      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(5, 0), "NEURAL AMP MODELER", mStyle));
-      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(5, 1), "By Steven Atkinson", mStyle));
-      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(5, 2), buildInfoStr.Get(), mStyle));
-      AddChildControl(new IURLControl(GetRECT().SubRectVertical(5, 3),
+      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 0), "NEURAL AMP MODELER", mStyle));
+      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 1), "By Steven Atkinson", mStyle));
+      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 2), buildInfoStr.Get(), mStyle));
+      AddChildControl(new IURLControl(GetRECT().SubRectVertical(8, 3),
                                       "Plug-in development: Steve Atkinson, Oli Larkin, ... ",
                                       "https://github.com/sdatkinson/NeuralAmpModelerPlugin/graphs/contributors", mText,
                                       COLOR_TRANSPARENT, PluginColors::HELP_TEXT_MO, PluginColors::HELP_TEXT_CLICKED));
-      AddChildControl(new IURLControl(GetRECT().SubRectVertical(5, 4), "www.neuralampmodeler.com",
+      AddChildControl(new IURLControl(GetRECT().SubRectVertical(8, 4), "www.neuralampmodeler.com",
                                       "https://www.neuralampmodeler.com", mText, COLOR_TRANSPARENT,
+                                      PluginColors::HELP_TEXT_MO, PluginColors::HELP_TEXT_CLICKED));
+      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 5), "", mStyle));
+      AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 6), "Skin by PWC Profiles", mStyle));
+      AddChildControl(new IURLControl(GetRECT().SubRectVertical(8, 7), "www.pwc-profiles.com",
+                                      "https://pwc-profiles.com", mText, COLOR_TRANSPARENT,
                                       PluginColors::HELP_TEXT_MO, PluginColors::HELP_TEXT_CLICKED));
     };
 
