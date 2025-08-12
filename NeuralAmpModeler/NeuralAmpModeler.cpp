@@ -50,8 +50,42 @@ const IVStyle style =
           DEFAULT_SHADOW_OFFSET,
           DEFAULT_WIDGET_FRAC,
           DEFAULT_WIDGET_ANGLE};
+
+
+const IVStyle pwc_style =
+  IVStyle{true, // Show label
+          true, // Show value
+          colorSpec,
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Middle, PluginColors::NAM_PWC_DARKFONTCOLOR}, // Knob label text5
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Bottom, PluginColors::NAM_PWC_SEMIDARKFONTCOLOR}, // Knob value text
+          DEFAULT_HIDE_CURSOR,
+          DEFAULT_DRAW_FRAME,
+          false,
+          DEFAULT_EMBOSS,
+          0.0f,
+          0.0f,
+          DEFAULT_SHADOW_OFFSET,
+          PWC_TONE_STACK_WIDGET_FRAC,
+          DEFAULT_WIDGET_ANGLE};
+
+const IVStyle pwc_style_switch =
+  IVStyle{true, // Show label
+          true, // Show value
+          colorSpec,
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Middle, PluginColors::NAM_PWC_DARKFONTCOLOR}, // Knob label text5
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Bottom, PluginColors::NAM_PWC_SEMIDARKFONTCOLOR}, // Knob value text
+          DEFAULT_HIDE_CURSOR,
+          DEFAULT_DRAW_FRAME,
+          false,
+          DEFAULT_EMBOSS,
+          0.0f,
+          0.0f,
+          DEFAULT_SHADOW_OFFSET,
+          PWC_SWITCH_WIDGET_FRAC,
+          DEFAULT_WIDGET_ANGLE};
+
 const IVStyle titleStyle =
-  DEFAULT_STYLE.WithValueText(IText(30, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+  DEFAULT_STYLE.WithValueText(IText(14, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
 const IVStyle radioButtonStyle =
   style
     .WithColor(EVColor::kON, PluginColors::NAM_THEMECOLOR) // Pressed buttons and their labels
@@ -80,14 +114,15 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 {
   _InitToneStack();
   nam::activations::Activation::enable_fast_tanh();
-  GetParam(kInputLevel)->InitGain("Input", 0.0, -20.0, 20.0, 0.1);
-  GetParam(kToneBass)->InitDouble("Bass", 5.0, 0.0, 10.0, 0.1);
-  GetParam(kToneMid)->InitDouble("Middle", 5.0, 0.0, 10.0, 0.1);
-  GetParam(kToneTreble)->InitDouble("Treble", 5.0, 0.0, 10.0, 0.1);
-  GetParam(kOutputLevel)->InitGain("Output", 0.0, -40.0, 40.0, 0.1);
-  GetParam(kNoiseGateThreshold)->InitGain("Threshold", -80.0, -100.0, 0.0, 0.1);
+  GetParam(kInputLevel)->InitGain("GAIN", 0.0, -20.0, 20.0, 0.1);
+  GetParam(kToneBass)->InitDouble("BASS", 5.0, 0.0, 10.0, 0.1);
+  GetParam(kToneMid)->InitDouble("MIDDLE", 5.0, 0.0, 10.0, 0.1);
+  GetParam(kToneTreble)->InitDouble("TREBLE", 5.0, 0.0, 10.0, 0.1);
+  GetParam(kOutputLevel)->InitGain("MASTER", 0.0, -40.0, 40.0, 0.1);
+  GetParam(kNoiseGateThreshold)->InitGain("THRESHOLD", -80.0, -100.0, 0.0, 0.1);
   GetParam(kNoiseGateActive)->InitBool("NoiseGateActive", true);
   GetParam(kEQActive)->InitBool("ToneStack", true);
+  GetParam(kPrePostEQ)->InitEnum("EQ Position", 1, {"Pre", "Post"}); // Default to Post
   GetParam(kOutputMode)->InitEnum("OutputMode", 1, {"Raw", "Normalized", "Calibrated"}); // TODO DRY w/ control
   GetParam(kIRToggle)->InitBool("IRToggle", true);
   GetParam(kCalibrateInput)->InitBool(kCalibrateInputParamName.c_str(), kDefaultCalibrateInput);
@@ -101,7 +136,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 #ifdef OS_IOS
     auto scaleFactor = GetScaleForScreen(PLUG_WIDTH, PLUG_HEIGHT) * 0.85f;
 #else
-    auto scaleFactor = 1.0f;
+    auto scaleFactor = 1.5f;
 #endif
 
     return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS, scaleFactor);
@@ -115,6 +150,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->EnableMultiTouch(true);
 
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
+    pGraphics->LoadFont("Roboto-Bold", ROBOTO_BOLD_FN);
     pGraphics->LoadFont("Michroma-Regular", MICHROMA_FN);
 
     const auto gearSVG = pGraphics->LoadSVG(GEAR_FN);
@@ -128,51 +164,57 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto irIconOffSVG = pGraphics->LoadSVG(IR_ICON_OFF_FN);
 
     const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
+    const auto backgroundBacksideBitmap = pGraphics->LoadBitmap(BACKGROUNDBACKSIDE_FN);
     const auto fileBackgroundBitmap = pGraphics->LoadBitmap(FILEBACKGROUND_FN);
     const auto inputLevelBackgroundBitmap = pGraphics->LoadBitmap(INPUTLEVELBACKGROUND_FN);
     const auto linesBitmap = pGraphics->LoadBitmap(LINES_FN);
-    const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOBBACKGROUND_FN);
+    const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOB_BRASS_FN,128, false);
+    const auto knobBackgroundBitmapSilver = pGraphics->LoadBitmap(KNOB_SILVER_FN, 128, false);
     const auto switchHandleBitmap = pGraphics->LoadBitmap(SLIDESWITCHHANDLE_FN);
     const auto meterBackgroundBitmap = pGraphics->LoadBitmap(METERBACKGROUND_FN);
 
+    const auto switchOffBitmap = pGraphics->LoadBitmap(SWITCHOFF_FN);
+    const auto switchOnBitmap = pGraphics->LoadBitmap(SWITCHON_FN);
+
     const auto b = pGraphics->GetBounds();
-    const auto mainArea = b.GetPadded(-20);
-    const auto contentArea = mainArea.GetPadded(-10);
-    const auto titleHeight = 50.0f;
-    const auto titleArea = contentArea.GetFromTop(titleHeight);
+    const auto mainArea = b.GetPadded(0);
+    const auto contentArea = mainArea.GetPadded(0);
+    const auto titleHeight = 15.0f;
+    const auto titleArea = contentArea.GetFromBottom(titleHeight).GetVShifted(-10);
 
     // Areas for knobs
-    const auto knobsPad = 20.0f;
-    const auto knobsExtraSpaceBelowTitle = 25.0f;
+    const auto knobsPad = 180.0f;
+    const auto knobsExtraSpaceBelowTitle = 385.0f;
     const auto singleKnobPad = -2.0f;
+    const auto switchPad = 2.0f;
     const auto knobsArea = contentArea.GetFromTop(NAM_KNOB_HEIGHT)
-                             .GetReducedFromLeft(knobsPad)
-                             .GetReducedFromRight(knobsPad)
+                             .GetReducedFromLeft(239.0f)
+                             .GetReducedFromRight(240.0f)
                              .GetVShifted(titleHeight + knobsExtraSpaceBelowTitle);
-    const auto inputKnobArea = knobsArea.GetGridCell(0, kInputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
     const auto noiseGateArea = knobsArea.GetGridCell(0, kNoiseGateThreshold, 1, numKnobs).GetPadded(-singleKnobPad);
+    const auto inputKnobArea = knobsArea.GetGridCell(0, kInputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
     const auto bassKnobArea = knobsArea.GetGridCell(0, kToneBass, 1, numKnobs).GetPadded(-singleKnobPad);
     const auto midKnobArea = knobsArea.GetGridCell(0, kToneMid, 1, numKnobs).GetPadded(-singleKnobPad);
     const auto trebleKnobArea = knobsArea.GetGridCell(0, kToneTreble, 1, numKnobs).GetPadded(-singleKnobPad);
+
     const auto outputKnobArea = knobsArea.GetGridCell(0, kOutputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
+    const auto ngToggleArea = knobsArea.GetGridCell(0, kNoiseGateActive, 1, numKnobs).GetPadded(-singleKnobPad);  
 
-    const auto ngToggleArea =
-      noiseGateArea.GetVShifted(noiseGateArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-    const auto eqToggleArea = midKnobArea.GetVShifted(midKnobArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-
+    const auto eqToggleArea = knobsArea.GetGridCell(0, kEQActive, 1, numKnobs).GetPadded(-singleKnobPad);
+    //const auto prePostEQArea = eqToggleArea.GetTranslated(eqToggleArea.W(), 0.f);
     // Areas for model and IR
-    const auto fileWidth = 200.0f;
-    const auto fileHeight = 30.0f;
+    const auto fileWidth = 300.0f;
+    const auto fileHeight = 28.0f;
     const auto irYOffset = 38.0f;
     const auto modelArea =
-      contentArea.GetFromBottom((2.0f * fileHeight)).GetFromTop(fileHeight).GetMidHPadded(fileWidth).GetVShifted(-1);
+      contentArea.GetFromTop((2.0f * fileHeight+30.f)).GetFromTop(fileHeight).GetMidHPadded(fileWidth).GetVShifted(31);
     const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
     const auto irArea = modelArea.GetVShifted(irYOffset);
     const auto irSwitchArea = irArea.GetFromLeft(30.0f).GetHShifted(-40.0f).GetScaledAboutCentre(0.6f);
 
     // Areas for meters
-    const auto inputMeterArea = contentArea.GetFromLeft(30).GetHShifted(-20).GetMidVPadded(100).GetVShifted(-25);
-    const auto outputMeterArea = contentArea.GetFromRight(30).GetHShifted(20).GetMidVPadded(100).GetVShifted(-25);
+    const auto inputMeterArea = contentArea.GetFromLeft(20).GetHShifted(35).GetMidVPadded(100).GetVShifted(25);
+    const auto outputMeterArea = contentArea.GetFromRight(20).GetHShifted(-35).GetMidVPadded(100).GetVShifted(25);
 
     // Misc Areas
     const auto settingsButtonArea = CornerButtonArea(b);
@@ -212,7 +254,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     };
 
     pGraphics->AttachBackground(BACKGROUND_FN);
-    pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
+    //pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
     pGraphics->AttachControl(new IVLabelControl(titleArea, "NEURAL AMP MODELER", titleStyle));
     pGraphics->AttachControl(new ISVGControl(modelIconArea, modelIconSVG));
 
@@ -226,8 +268,9 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     // Getting started page listing additional resources
     const char* const getUrl = "https://www.neuralampmodeler.com/users#comp-marb84o5";
     pGraphics->AttachControl(
-      new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(), "nam",
-                                loadModelCompletionHandler, style, fileSVG, crossSVG, leftArrowSVG, rightArrowSVG,
+      new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(), "nam", loadModelCompletionHandler,
+        style, fileSVG, crossSVG, leftArrowSVG,
+        rightArrowSVG,
                                 fileBackgroundBitmap, globeSVG, "Get NAM Models", getUrl),
       kCtrlTagModelFileBrowser);
     pGraphics->AttachControl(new ISVGSwitchControl(irSwitchArea, {irIconOffSVG, irIconOnSVG}, kIRToggle));
@@ -236,24 +279,32 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
                                 fileSVG, crossSVG, leftArrowSVG, rightArrowSVG, fileBackgroundBitmap, globeSVG,
                                 "Get IRs", getUrl),
       kCtrlTagIRFileBrowser);
+    pGraphics->AttachControl(new NAMBitmapSwitchControl(
+      ngToggleArea, kNoiseGateActive, "NOISE GATE", pwc_style_switch, switchOffBitmap, switchOnBitmap));
     pGraphics->AttachControl(
-      new NAMSwitchControl(ngToggleArea, kNoiseGateActive, "Noise Gate", style, switchHandleBitmap));
-    pGraphics->AttachControl(new NAMSwitchControl(eqToggleArea, kEQActive, "EQ", style, switchHandleBitmap));
+      new NAMBitmapSwitchControl(eqToggleArea, kEQActive, "EQ", pwc_style_switch, switchOffBitmap, switchOnBitmap));
+
+     // Attach the new Pre/Post EQ switch control to the UI
+    //pGraphics->AttachControl(
+     // new NAMBitmapSwitchControl(prePostEQArea, kPrePostEQ, "EQ POS", pwc_style, switchOffBitmap, switchOnBitmap));
 
     // The knobs
-    pGraphics->AttachControl(new NAMKnobControl(inputKnobArea, kInputLevel, "", style, knobBackgroundBitmap));
-    pGraphics->AttachControl(new NAMKnobControl(noiseGateArea, kNoiseGateThreshold, "", style, knobBackgroundBitmap));
+    pGraphics->AttachControl(new NAMKnobControl(inputKnobArea, kInputLevel, "", pwc_style, knobBackgroundBitmap));
     pGraphics->AttachControl(
-      new NAMKnobControl(bassKnobArea, kToneBass, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
+      new NAMKnobControl(noiseGateArea, kNoiseGateThreshold, "", pwc_style, knobBackgroundBitmapSilver));
     pGraphics->AttachControl(
-      new NAMKnobControl(midKnobArea, kToneMid, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
+      new NAMKnobControl(bassKnobArea, kToneBass, "", pwc_style, knobBackgroundBitmap), -1, "EQ_KNOBS");
     pGraphics->AttachControl(
-      new NAMKnobControl(trebleKnobArea, kToneTreble, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
-    pGraphics->AttachControl(new NAMKnobControl(outputKnobArea, kOutputLevel, "", style, knobBackgroundBitmap));
+      new NAMKnobControl(midKnobArea, kToneMid, "", pwc_style, knobBackgroundBitmap), -1, "EQ_KNOBS");
+    pGraphics->AttachControl(
+      new NAMKnobControl(trebleKnobArea, kToneTreble, "", pwc_style, knobBackgroundBitmap), -1, "EQ_KNOBS");
+    pGraphics->AttachControl(
+      new NAMKnobControl(outputKnobArea, kOutputLevel, "", pwc_style, knobBackgroundBitmapSilver));
 
     // The meters
-    pGraphics->AttachControl(new NAMMeterControl(inputMeterArea, meterBackgroundBitmap, style), kCtrlTagInputMeter);
-    pGraphics->AttachControl(new NAMMeterControl(outputMeterArea, meterBackgroundBitmap, style), kCtrlTagOutputMeter);
+    pGraphics->AttachControl(new NAMMeterControl(inputMeterArea, meterBackgroundBitmap, pwc_style), kCtrlTagInputMeter);
+    pGraphics->AttachControl(
+      new NAMMeterControl(outputMeterArea, meterBackgroundBitmap, pwc_style), kCtrlTagOutputMeter);
 
     // Settings/help/about box
     pGraphics->AttachControl(new NAMCircleButtonControl(
@@ -264,8 +315,9 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       gearSVG));
 
     pGraphics
-      ->AttachControl(new NAMSettingsPageControl(b, backgroundBitmap, inputLevelBackgroundBitmap, switchHandleBitmap,
-                                                 crossSVG, style, radioButtonStyle),
+      ->AttachControl(
+        new NAMSettingsPageControl(b, backgroundBacksideBitmap, inputLevelBackgroundBitmap, switchHandleBitmap,
+                                                 switchOffBitmap, switchOnBitmap, crossSVG, style, radioButtonStyle),
                       kCtrlTagSettingsBox)
       ->Hide(true);
 
@@ -303,8 +355,14 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
   _ApplyDSPStaging();
   const bool noiseGateActive = GetParam(kNoiseGateActive)->Value();
   const bool toneStackActive = GetParam(kEQActive)->Value();
+  const bool eqIsPre = (GetParam(kPrePostEQ)->Int() == 0); // 0 for "Pre", 1 for "Post"
 
-  // Noise gate trigger
+  // Define a pointer to the current buffer in the signal chain.
+  // This allows us to re-route the signal without extra memory copies.
+  sample** signalChain = mInputPointers;
+
+
+  // 1. Noise gate trigger
   sample** triggerOutput = mInputPointers;
   if (noiseGateActive)
   {
@@ -317,28 +375,58 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
     const dsp::noise_gate::TriggerParams triggerParams(time, threshold, ratio, openTime, holdTime, closeTime);
     mNoiseGateTrigger.SetParams(triggerParams);
     mNoiseGateTrigger.SetSampleRate(sampleRate);
-    triggerOutput = mNoiseGateTrigger.Process(mInputPointers, numChannelsInternal, numFrames);
+    signalChain = mNoiseGateTrigger.Process(mInputPointers, numChannelsInternal, numFrames);
   }
 
+  // 2.  (PRE) Apply Tone Stack if the switch is set to "Pre"
+  if (eqIsPre && toneStackActive && mToneStack != nullptr)
+  {
+    signalChain = mToneStack->Process(signalChain, numChannelsInternal, numFrames);
+  }
+
+  // 3. Apply the Neural Amp Model
   if (mModel != nullptr)
   {
-    mModel->process(triggerOutput[0], mOutputPointers[0], nFrames);
+   // mModel->process(triggerOutput[0], mOutputPointers[0], nFrames);
+    mModel->process(signalChain[0], mOutputPointers[0], nFrames);
+    signalChain = mOutputPointers;
   }
   else
   {
-    _FallbackDSP(triggerOutput, mOutputPointers, numChannelsInternal, numFrames);
+    //_FallbackDSP(triggerOutput, mOutputPointers, numChannelsInternal, numFrames);
+    _FallbackDSP(signalChain, mOutputPointers, numChannelsInternal, numFrames);
+    signalChain = mOutputPointers;
   }
   // Apply the noise gate after the NAM
-  sample** gateGainOutput =
-    noiseGateActive ? mNoiseGateGain.Process(mOutputPointers, numChannelsInternal, numFrames) : mOutputPointers;
+  //sample** gateGainOutput =
+    //noiseGateActive ? mNoiseGateGain.Process(mOutputPointers, numChannelsInternal, numFrames) : mOutputPointers;
+  // 4. Apply the noise gate gain section (should happen after the high-gain model)
+  if (noiseGateActive)
+  {
+    signalChain = mNoiseGateGain.Process(signalChain, numChannelsInternal, numFrames);
+  }
 
-  sample** toneStackOutPointers = (toneStackActive && mToneStack != nullptr)
-                                    ? mToneStack->Process(gateGainOutput, numChannelsInternal, nFrames)
-                                    : gateGainOutput;
 
-  sample** irPointers = toneStackOutPointers;
+  //sample** toneStackOutPointers = (toneStackActive && mToneStack != nullptr)
+  //                                  ? mToneStack->Process(gateGainOutput, numChannelsInternal, nFrames)
+  //                                  : gateGainOutput;
+
+  //sample** irPointers = toneStackOutPointers;
+  //if (mIR != nullptr && GetParam(kIRToggle)->Value())
+  //  irPointers = mIR->Process(toneStackOutPointers, numChannelsInternal, numFrames);
+
+    // 5. (POST) Apply Tone Stack if the switch is set to "Post"
+  if (!eqIsPre && toneStackActive && mToneStack != nullptr)
+  {
+    signalChain = mToneStack->Process(signalChain, numChannelsInternal, numFrames);
+  }
+
+  // 6. Apply the IR
   if (mIR != nullptr && GetParam(kIRToggle)->Value())
-    irPointers = mIR->Process(toneStackOutPointers, numChannelsInternal, numFrames);
+  {
+    signalChain = mIR->Process(signalChain, numChannelsInternal, numFrames);
+  }
+
 
   // And the HPF for DC offset (Issue 271)
   const double highPassCutoffFreq = kDCBlockerFrequency;
@@ -347,15 +435,18 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
   // const recursive_linear_filter::LowPassParams lowPassParams(sampleRate, lowPassCutoffFreq);
   mHighPass.SetParams(highPassParams);
   // mLowPass.SetParams(lowPassParams);
-  sample** hpfPointers = mHighPass.Process(irPointers, numChannelsInternal, numFrames);
-  // sample** lpfPointers = mLowPass.Process(hpfPointers, numChannelsInternal, numFrames);
+  //sample** hpfPointers = mHighPass.Process(irPointers, numChannelsInternal, numFrames);
+  //   // sample** lpfPointers = mLowPass.Process(hpfPointers, numChannelsInternal, numFrames);
+  signalChain = mHighPass.Process(signalChain, numChannelsInternal, numFrames);
+
 
   // restore previous floating point state
   std::feupdateenv(&fe_state);
 
   // Let's get outta here
   // This is where we exit mono for whatever the output requires.
-  _ProcessOutput(hpfPointers, outputs, numFrames, numChannelsInternal, numChannelsExternalOut);
+  //_ProcessOutput(hpfPointers, outputs, numFrames, numChannelsInternal, numChannelsExternalOut);
+  _ProcessOutput(signalChain, outputs, numFrames, numChannelsInternal, numChannelsExternalOut);
   // _ProcessOutput(lpfPointers, outputs, numFrames, numChannelsInternal, numChannelsExternalOut);
   // * Output of input leveling (inputs -> mInputPointers),
   // * Output of output leveling (mOutputPointers -> outputs)

@@ -1,15 +1,15 @@
-#define PLUG_NAME "NeuralAmpModeler"
-#define PLUG_MFR "Steven Atkinson"
+#define PLUG_NAME "NeuralAmpModelerPWCprofilesSkin"
+#define PLUG_MFR "PWC Profiles"
 #define PLUG_VERSION_HEX 0x0000070d
 #define PLUG_VERSION_STR "0.7.13"
-#define PLUG_UNIQUE_ID '1YEo'
-#define PLUG_MFR_ID 'SDAa'
-#define PLUG_URL_STR "https://github.com/sdatkinson/NeuralAmpModelerPlugin"
+#define PLUG_UNIQUE_ID 'p7hV'
+#define PLUG_MFR_ID 'PWCp'
+#define PLUG_URL_STR "https://www.pwc-profiles.com/NAM"
 #define PLUG_EMAIL_STR "spam@me.com"
-#define PLUG_COPYRIGHT_STR "Copyright 2022 Steven Atkinson"
+#define PLUG_COPYRIGHT_STR "Copyright 2025 PWC Profiles"
 #define PLUG_CLASS_NAME NeuralAmpModeler
-#define BUNDLE_NAME "NeuralAmpModeler"
-#define BUNDLE_MFR "StevenAtkinson"
+#define BUNDLE_NAME "NeuralAmpModelerPWCprofilesSkin"
+#define BUNDLE_MFR "PWC Profiles"
 #define BUNDLE_DOMAIN "com"
 
 #define SHARED_RESOURCES_SUBPATH "NeuralAmpModeler"
@@ -27,13 +27,13 @@
 #define PLUG_DOES_MPE 0
 #define PLUG_DOES_STATE_CHUNKS 0
 #define PLUG_HAS_UI 1
-#define PLUG_WIDTH 600
-#define PLUG_HEIGHT 400
+#define PLUG_WIDTH 1024	
+#define PLUG_HEIGHT 576
 #define PLUG_FPS 60
 #define PLUG_SHARED_RESOURCES 0
 #define PLUG_HOST_RESIZE 0
-#define PLUG_MAX_WIDTH PLUG_WIDTH * 4
-#define PLUG_MAX_HEIGHT PLUG_HEIGHT * 4
+#define PLUG_MAX_WIDTH PLUG_WIDTH * 3
+#define PLUG_MAX_HEIGHT PLUG_HEIGHT * 3
 
 #define AUV2_ENTRY NeuralAmpModeler_Entry
 #define AUV2_ENTRY_STR "NeuralAmpModeler_Entry"
@@ -57,6 +57,7 @@
 #define APP_SIGNAL_VECTOR_SIZE 64
 
 #define ROBOTO_FN "Roboto-Regular.ttf"
+#define ROBOTO_BOLD_FN "Roboto-Bold.ttf"
 #define MICHROMA_FN "Michroma-Regular.ttf"
 
 #define GEAR_FN "Gear.svg"
@@ -72,6 +73,10 @@
 #define BACKGROUND_FN "Background.jpg"
 #define BACKGROUND2X_FN "Background@2x.jpg"
 #define BACKGROUND3X_FN "Background@3x.jpg"
+#define BACKGROUNDBACKSIDE_FN "BackgroundBackside.jpg"
+#define BACKGROUNDBACKSIDE2X_FN "BackgroundBackside@2x.jpg"
+#define BACKGROUNDBACKSIDE3X_FN "BackgroundBackside@3x.jpg"
+
 #define KNOBBACKGROUND_FN "KnobBackground.png"
 #define KNOBBACKGROUND2X_FN "KnobBackground@2x.png"
 #define KNOBBACKGROUND3X_FN "KnobBackground@3x.png"
@@ -87,6 +92,18 @@
 #define SLIDESWITCHHANDLE_FN "SlideSwitchHandle.png"
 #define SLIDESWITCHHANDLE2X_FN "SlideSwitchHandle@2x.png"
 #define SLIDESWITCHHANDLE3X_FN "SlideSwitchHandle@3x.png"
+#define SWITCHOFF_FN "SwitchOff.png"
+#define SWITCHOFF2X_FN "SwitchOff@2x.png"
+#define SWITCHOFF3X_FN "SwitchOff@3x.png"
+#define SWITCHON_FN "SwitchOn.png"
+#define SWITCHON2X_FN "SwitchOn@2x.png"
+#define SWITCHON3X_FN "SwitchOn@3x.png"
+#define KNOB_BRASS_FN "KnobBrass.png"
+#define KNOB_BRASS2X_FN "KnobBrass@2x.png"
+#define KNOB_BRASS3X_FN "KnobBrass@3x.png"
+#define KNOB_SILVER_FN "KnobSilver.png"
+#define KNOB_SILVER2X_FN "KnobSilver@2x.png"
+#define KNOB_SILVER3X_FN "KnobSilver@3x.png"
 
 #define METERBACKGROUND_FN "MeterBackground.png"
 #define METERBACKGROUND2X_FN "MeterBackground@2x.png"
