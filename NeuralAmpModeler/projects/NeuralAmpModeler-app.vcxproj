@@ -344,6 +344,7 @@
     <ClInclude Include="..\..\NeuralAmpModelerCore\NAM\wavenet.h" />
     <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="..\ToneStack.h" />
+    <ClInclude Include="NAMMetadata.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\iPlug2\Dependencies\IPlug\RTAudio\include\asio.cpp" />
@@ -406,6 +407,7 @@
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\util.cpp" />
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\wavenet.cpp" />
     <ClCompile Include="..\ToneStack.cpp" />
+    <ClCompile Include="NAMMetadata.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />

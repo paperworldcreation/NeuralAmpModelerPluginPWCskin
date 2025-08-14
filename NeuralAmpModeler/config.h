@@ -70,6 +70,15 @@
 #define IR_ICON_OFF_FN "IRIconOff.svg"
 #define GLOBE_ICON_FN "Globe.svg"
 
+#define ICON_TYPE_AMP "icon_amp.svg"
+#define ICON_TYPE_PREAMP "icon_preamp.svg"
+#define ICON_TYPE_AMP_CAB "icon_amp_cab.svg"
+#define ICON_TYPE_AMP_CAB_PEDAL "icon_amp_cab_pedal.svg"
+#define ICON_TYPE_PEDAL "icon_pedal.svg"
+#define ICON_TYPE_STUDIO "icon_studio.svg"
+#define ICON_TYPE_AMP_PEDAL "icon_amp_pedal.svg"
+
+
 #define BACKGROUND_FN "Background.jpg"
 #define BACKGROUND2X_FN "Background@2x.jpg"
 #define BACKGROUND3X_FN "Background@3x.jpg"

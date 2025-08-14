@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="140"
+   height="100"
+   viewBox="0 0 140 100"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="model_type_icon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="7.6266517"
+     inkscape:cx="79.654876"
+     inkscape:cy="76.311338"
+     inkscape:window-width="3840"
+     inkscape:window-height="2054"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g60">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="8"
+       enabled="true"
+       visible="false" />
+    <inkscape:page
+       x="0"
+       y="0"
+       width="140"
+       height="100"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="ICONS"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       inkscape:groupmode="layer"
+       id="g60"
+       inkscape:label="pedal"
+       style="display:inline"
+       transform="translate(-1480,-125)">
+      <path
+         id="path60"
+         style="opacity:1;fill:#ffffff;fill-rule:evenodd;stroke-linecap:round;stroke-linejoin:round"
+         d="m 1539,144 c -4.9687,0 -9,4.0313 -9,9 v 10 h -1 v 6.8457 h 1 V 196 c 0,4.9687 4.0313,9 9,9 h 22 c 4.9687,0 9,-4.0313 9,-9 v -26.1543 h 1 V 163 h -1 v -10 c 0,-4.9687 -4.0313,-9 -9,-9 z m 0,2 h 22 c 3.8953,0 7,3.1047 7,7 v 22 h -36 v -22 c 0,-3.8953 3.1047,-7 7,-7 z m 2.0234,7.00586 a 4,4 0 0 0 -2.1914,0.63086 l 1.2774,1.53125 -0.7676,0.64062 -1.2754,-1.52929 a 4,4 0 0 0 -0.1484,5.28711 4,4 0 0 0 5.6328,0.50976 4,4 0 0 0 0.5097,-5.63476 4,4 0 0 0 -3.0371,-1.43555 z m 18.0332,0.004 a 4,4 0 0 0 -2.1914,0.625 4,4 0 0 0 -1.2246,5.52148 4,4 0 0 0 5.5235,1.22461 4,4 0 0 0 1.4648,-5.08203 l -1.6816,1.07031 -0.5391,-0.84375 1.6816,-1.07031 a 4,4 0 0 0 -3.0332,-1.44531 z m -9.3398,8.49609 a 4,4 0 0 0 -2.9414,1.62109 4,4 0 0 0 0.8594,5.5918 4,4 0 0 0 5.5918,-0.85937 4,4 0 0 0 -0.4766,-5.26954 l -1.1797,1.60743 -0.8066,-0.5918 1.1777,-1.60547 a 4,4 0 0 0 -2.2246,-0.49414 z M 1532,177 h 36 v 19 c 0,3.8953 -3.1047,7 -7,7 h -22 c -3.8953,0 -7,-3.1047 -7,-7 z m 7,3 c -2.216,0 -4,1.784 -4,4 v 12 c 0,2.216 1.784,4 4,4 h 22 c 2.216,0 4,-1.784 4,-4 v -12 c 0,-2.216 -1.784,-4 -4,-4 z" />
+    </g>
+  </g>
+</svg>

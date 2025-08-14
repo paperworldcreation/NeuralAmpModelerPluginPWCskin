@@ -52,6 +52,23 @@ const IVStyle style =
           DEFAULT_WIDGET_ANGLE};
 
 
+const IVStyle pwc_style_metadata =
+  IVStyle{true, // Show label
+          true, // Show value
+          colorSpec,
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Middle, PluginColors::NAM_PWC_NAM_THEMEFONTCOLOR}, // Knob label text5
+          {DEFAULT_TEXT_SIZE - 4.f, EVAlign::Bottom, PluginColors::NAM_PWC_NAM_THEMEFONTCOLOR}, // Knob value text
+          DEFAULT_HIDE_CURSOR,
+          DEFAULT_DRAW_FRAME,
+          false,
+          DEFAULT_EMBOSS,
+          0.0f,
+          0.0f,
+          DEFAULT_SHADOW_OFFSET,
+          PWC_TONE_STACK_WIDGET_FRAC,
+          DEFAULT_WIDGET_ANGLE};
+
+
 const IVStyle pwc_style =
   IVStyle{true, // Show label
           true, // Show value
@@ -163,12 +180,22 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto irIconOnSVG = pGraphics->LoadSVG(IR_ICON_ON_FN);
     const auto irIconOffSVG = pGraphics->LoadSVG(IR_ICON_OFF_FN);
 
+    mIconAmpSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_AMP));
+
+    mIconAmpPedalSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_AMP_PEDAL));
+    mIconPedalSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_PEDAL));
+    mIconAmpCabSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_AMP_CAB));
+    mIconAmpCabPedalSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_AMP_CAB_PEDAL));
+    mIconPreampSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_PREAMP));
+    mIconStudioSVG = std::make_unique<ISVG>(pGraphics->LoadSVG(ICON_TYPE_STUDIO));
+
+
     const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
     const auto backgroundBacksideBitmap = pGraphics->LoadBitmap(BACKGROUNDBACKSIDE_FN);
     const auto fileBackgroundBitmap = pGraphics->LoadBitmap(FILEBACKGROUND_FN);
     const auto inputLevelBackgroundBitmap = pGraphics->LoadBitmap(INPUTLEVELBACKGROUND_FN);
     const auto linesBitmap = pGraphics->LoadBitmap(LINES_FN);
-    const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOB_BRASS_FN,128, false);
+    const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOB_BRASS_FN, 128, false);
     const auto knobBackgroundBitmapSilver = pGraphics->LoadBitmap(KNOB_SILVER_FN, 128, false);
     const auto switchHandleBitmap = pGraphics->LoadBitmap(SLIDESWITCHHANDLE_FN);
     const auto meterBackgroundBitmap = pGraphics->LoadBitmap(METERBACKGROUND_FN);
@@ -184,8 +211,8 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     // Areas for knobs
     const auto knobsPad = 180.0f;
-    const auto knobsExtraSpaceBelowTitle = 385.0f;
-    const auto singleKnobPad = -2.0f;
+    const auto knobsExtraSpaceBelowTitle = 386.0f;
+    const auto singleKnobPad = 2.0f;
     const auto switchPad = 2.0f;
     const auto knobsArea = contentArea.GetFromTop(NAM_KNOB_HEIGHT)
                              .GetReducedFromLeft(239.0f)
@@ -198,16 +225,20 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto trebleKnobArea = knobsArea.GetGridCell(0, kToneTreble, 1, numKnobs).GetPadded(-singleKnobPad);
 
     const auto outputKnobArea = knobsArea.GetGridCell(0, kOutputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto ngToggleArea = knobsArea.GetGridCell(0, kNoiseGateActive, 1, numKnobs).GetPadded(-singleKnobPad);  
+    const auto ngToggleArea = knobsArea.GetGridCell(0, kNoiseGateActive, 1, numKnobs).GetPadded(-singleKnobPad);
 
-    const auto eqToggleArea = knobsArea.GetGridCell(0, kEQActive, 1, numKnobs).GetPadded(-singleKnobPad);
-    //const auto prePostEQArea = eqToggleArea.GetTranslated(eqToggleArea.W(), 0.f);
+    const auto eqToggleArea =
+      knobsArea.GetGridCell(0, kEQActive, 1, numKnobs).GetPadded(-singleKnobPad).GetHShifted(-1);
+    // const auto prePostEQArea = eqToggleArea.GetTranslated(eqToggleArea.W(), 0.f);
+
     // Areas for model and IR
-    const auto fileWidth = 300.0f;
+    const auto fileWidth = 200.0f;
     const auto fileHeight = 28.0f;
     const auto irYOffset = 38.0f;
-    const auto modelArea =
-      contentArea.GetFromTop((2.0f * fileHeight+30.f)).GetFromTop(fileHeight).GetMidHPadded(fileWidth).GetVShifted(31);
+    const auto modelArea = contentArea.GetFromTop((2.0f * fileHeight + 30.f))
+                             .GetFromTop(fileHeight)
+                             .GetMidHPadded(fileWidth)
+                             .GetVShifted(31);
     const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
     const auto irArea = modelArea.GetVShifted(irYOffset);
     const auto irSwitchArea = irArea.GetFromLeft(30.0f).GetHShifted(-40.0f).GetScaledAboutCentre(0.6f);
@@ -218,6 +249,10 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     // Misc Areas
     const auto settingsButtonArea = CornerButtonArea(b);
+
+    // Area vor Type Icons
+    const auto typeIconsArea = IRECT::MakeXYWH(720.f, 40.f, 70.f, 50.f);
+    const auto typeTextArea = IRECT::MakeXYWH(798.f, 35.f, 140.f, 60.f);
 
     // Model loader button
     auto loadModelCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
@@ -231,6 +266,85 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
           std::stringstream ss;
           ss << "Failed to load NAM model. Message:\n\n" << msg;
           _ShowMessageBox(GetUI(), ss.str().c_str(), "Failed to load model!", kMB_OK);
+        }
+        else
+        {
+          try
+          {
+            // Combine the path and filename from the handler's arguments to get the full path.
+            // Use u8path to correctly handle potential UTF-8 characters.
+            std::filesystem::path modelFullPath = std::filesystem::u8path(path.Get());
+            modelFullPath /= std::filesystem::u8path(fileName.Get());
+            mNAMMetadata = NAMMetadata(modelFullPath);
+
+            if (auto* pGraphics = GetUI())
+            {
+
+              if (auto* pMetaDataControl = pGraphics->GetControlWithTag(kCtrlTagModelInfoMetaData))
+              {
+                // Cast it to your class type and call the new method
+                pMetaDataControl->As<ModelInfoMetaDataControl>()->SetModelInfo(mNAMMetadata);
+              }
+              else
+              {
+                DBGMSG("ERROR: Failed to find control with tag kCtrlTagModelInfoMetaData!\n");
+              }
+
+              // It's now safe to use pGraphics inside this block.
+              IControl* pControl = pGraphics->GetControlWithTag(kCtrlModelTypeIcons);
+              if (pControl)
+              {
+                ISVGControl* pIconControl = pControl->As<ISVGControl>();
+                std::string gearType = mNAMMetadata.GetGearType();
+
+
+                // Use the == operator for std::string comparison
+                if (gearType == "pedal" && mIconPedalSVG)
+                {
+                  pIconControl->SetSVG(*mIconPedalSVG);
+                }
+                else if (gearType == "studio" && mIconStudioSVG)
+                {
+                  pIconControl->SetSVG(*mIconStudioSVG);
+                }
+                else if (gearType == "preamp" && mIconPreampSVG)
+                {
+                  pIconControl->SetSVG(*mIconPreampSVG);
+                }
+                else if (gearType == "pedal_amp" && mIconAmpPedalSVG)
+                {
+                  pIconControl->SetSVG(*mIconAmpPedalSVG);
+                }
+                else if (gearType == "amp_cab" && mIconAmpCabSVG)
+                {
+                  pIconControl->SetSVG(*mIconAmpCabSVG);
+                }
+                else if (gearType == "amp_pedal_cab" && mIconAmpCabPedalSVG)
+                {
+                  pIconControl->SetSVG(*mIconAmpCabPedalSVG);
+                }
+                else // Default case for "Amp" or any other type
+                {
+                  if (mIconAmpSVG)
+                    pIconControl->SetSVG(*mIconAmpSVG);
+                }
+
+                // Redraw the control after setting the correct SVG
+                pIconControl->Hide(false);
+                pIconControl->SetDirty(false);
+              }
+              else
+              {
+                DBGMSG("ERROR: Failed to find control with tag kCtrlModelTypeIcons!\n");
+              }
+            }
+          }
+          catch (const std::runtime_error& e)
+          {
+            // If the NAMMetadata constructor throws an error (e.g. file not found, bad JSON),
+            // catch it and show a message to the user.
+            _ShowMessageBox(GetUI(), e.what(), "Metadata Error", kMB_OK);
+          }
         }
         std::cout << "Loaded: " << fileName.Get() << std::endl;
       }
@@ -254,7 +368,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     };
 
     pGraphics->AttachBackground(BACKGROUND_FN);
-    //pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
+    // pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
     pGraphics->AttachControl(new IVLabelControl(titleArea, "NEURAL AMP MODELER", titleStyle));
     pGraphics->AttachControl(new ISVGControl(modelIconArea, modelIconSVG));
 
@@ -268,25 +382,25 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     // Getting started page listing additional resources
     const char* const getUrl = "https://www.neuralampmodeler.com/users#comp-marb84o5";
     pGraphics->AttachControl(
-      new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(), "nam", loadModelCompletionHandler,
-        style, fileSVG, crossSVG, leftArrowSVG,
-        rightArrowSVG,
-                                fileBackgroundBitmap, globeSVG, "Get NAM Models", getUrl),
+      new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(), "nam",
+                                loadModelCompletionHandler, style.WithLabelText(style.labelText.WithSize(12.f)),
+                                fileSVG, crossSVG, leftArrowSVG, rightArrowSVG, fileBackgroundBitmap, globeSVG,
+                                "Get NAM Models", getUrl),
       kCtrlTagModelFileBrowser);
     pGraphics->AttachControl(new ISVGSwitchControl(irSwitchArea, {irIconOffSVG, irIconOnSVG}, kIRToggle));
     pGraphics->AttachControl(
-      new NAMFileBrowserControl(irArea, kMsgTagClearIR, defaultIRString.c_str(), "wav", loadIRCompletionHandler, style,
-                                fileSVG, crossSVG, leftArrowSVG, rightArrowSVG, fileBackgroundBitmap, globeSVG,
-                                "Get IRs", getUrl),
+      new NAMFileBrowserControl(irArea, kMsgTagClearIR, defaultIRString.c_str(), "wav", loadIRCompletionHandler,
+                                style.WithLabelText(style.labelText.WithSize(12.f)), fileSVG, crossSVG, leftArrowSVG,
+                                rightArrowSVG, fileBackgroundBitmap, globeSVG, "Get IRs", getUrl),
       kCtrlTagIRFileBrowser);
     pGraphics->AttachControl(new NAMBitmapSwitchControl(
       ngToggleArea, kNoiseGateActive, "NOISE GATE", pwc_style_switch, switchOffBitmap, switchOnBitmap));
     pGraphics->AttachControl(
       new NAMBitmapSwitchControl(eqToggleArea, kEQActive, "EQ", pwc_style_switch, switchOffBitmap, switchOnBitmap));
 
-     // Attach the new Pre/Post EQ switch control to the UI
-    //pGraphics->AttachControl(
-     // new NAMBitmapSwitchControl(prePostEQArea, kPrePostEQ, "EQ POS", pwc_style, switchOffBitmap, switchOnBitmap));
+    // Attach the new Pre/Post EQ switch control to the UI
+    // pGraphics->AttachControl(
+    //  new NAMBitmapSwitchControl(prePostEQArea, kPrePostEQ, "EQ POS", pwc_style, switchOffBitmap, switchOnBitmap));
 
     // The knobs
     pGraphics->AttachControl(new NAMKnobControl(inputKnobArea, kInputLevel, "", pwc_style, knobBackgroundBitmap));
@@ -317,8 +431,8 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics
       ->AttachControl(
         new NAMSettingsPageControl(b, backgroundBacksideBitmap, inputLevelBackgroundBitmap, switchHandleBitmap,
-                                                 switchOffBitmap, switchOnBitmap, crossSVG, style, radioButtonStyle),
-                      kCtrlTagSettingsBox)
+                                   switchOffBitmap, switchOnBitmap, crossSVG, style, radioButtonStyle),
+        kCtrlTagSettingsBox)
       ->Hide(true);
 
     pGraphics->ForAllControlsFunc([](IControl* pControl) {
@@ -326,6 +440,21 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       pControl->SetMouseOverWhenDisabled(true);
     });
 
+    // Model Info ICON + Text
+    if (mIconAmpSVG)
+      pGraphics->AttachControl(new ISVGControl(typeIconsArea, *mIconAmpSVG, false), kCtrlModelTypeIcons)->Hide(true);
+
+    // Attach your new control
+    pGraphics->AttachControl(
+      new ModelInfoMetaDataControl(
+        typeTextArea, pwc_style_metadata.WithValueText(
+                        IText(DEFAULT_TEXT_SIZE - 3.0f, EAlign::Center, PluginColors::NAM_PWC_NAM_THEMEFONTCOLOR)
+                          .WithAlign(EAlign::Near))),
+      kCtrlTagModelInfoMetaData);
+
+    pGraphics->GetControlWithTag(kCtrlTagModelInfoMetaData)->Hide(true);
+
+    
     // pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetMouseEventsWhenDisabled(false);
     // pGraphics->GetControlWithTag(kCtrlTagCalibrateInput)->SetMouseEventsWhenDisabled(false);
   };
@@ -387,7 +516,7 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
   // 3. Apply the Neural Amp Model
   if (mModel != nullptr)
   {
-   // mModel->process(triggerOutput[0], mOutputPointers[0], nFrames);
+    // mModel->process(triggerOutput[0], mOutputPointers[0], nFrames);
     mModel->process(signalChain[0], mOutputPointers[0], nFrames);
     signalChain = mOutputPointers;
   }
@@ -398,8 +527,8 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
     signalChain = mOutputPointers;
   }
   // Apply the noise gate after the NAM
-  //sample** gateGainOutput =
-    //noiseGateActive ? mNoiseGateGain.Process(mOutputPointers, numChannelsInternal, numFrames) : mOutputPointers;
+  // sample** gateGainOutput =
+  // noiseGateActive ? mNoiseGateGain.Process(mOutputPointers, numChannelsInternal, numFrames) : mOutputPointers;
   // 4. Apply the noise gate gain section (should happen after the high-gain model)
   if (noiseGateActive)
   {
@@ -407,15 +536,15 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
   }
 
 
-  //sample** toneStackOutPointers = (toneStackActive && mToneStack != nullptr)
-  //                                  ? mToneStack->Process(gateGainOutput, numChannelsInternal, nFrames)
-  //                                  : gateGainOutput;
+  // sample** toneStackOutPointers = (toneStackActive && mToneStack != nullptr)
+  //                                   ? mToneStack->Process(gateGainOutput, numChannelsInternal, nFrames)
+  //                                   : gateGainOutput;
 
-  //sample** irPointers = toneStackOutPointers;
-  //if (mIR != nullptr && GetParam(kIRToggle)->Value())
-  //  irPointers = mIR->Process(toneStackOutPointers, numChannelsInternal, numFrames);
+  // sample** irPointers = toneStackOutPointers;
+  // if (mIR != nullptr && GetParam(kIRToggle)->Value())
+  //   irPointers = mIR->Process(toneStackOutPointers, numChannelsInternal, numFrames);
 
-    // 5. (POST) Apply Tone Stack if the switch is set to "Post"
+  // 5. (POST) Apply Tone Stack if the switch is set to "Post"
   if (!eqIsPre && toneStackActive && mToneStack != nullptr)
   {
     signalChain = mToneStack->Process(signalChain, numChannelsInternal, numFrames);
@@ -435,7 +564,7 @@ void NeuralAmpModeler::ProcessBlock(iplug::sample** inputs, iplug::sample** outp
   // const recursive_linear_filter::LowPassParams lowPassParams(sampleRate, lowPassCutoffFreq);
   mHighPass.SetParams(highPassParams);
   // mLowPass.SetParams(lowPassParams);
-  //sample** hpfPointers = mHighPass.Process(irPointers, numChannelsInternal, numFrames);
+  // sample** hpfPointers = mHighPass.Process(irPointers, numChannelsInternal, numFrames);
   //   // sample** lpfPointers = mLowPass.Process(hpfPointers, numChannelsInternal, numFrames);
   signalChain = mHighPass.Process(signalChain, numChannelsInternal, numFrames);
 
@@ -652,6 +781,7 @@ void NeuralAmpModeler::_ApplyDSPStaging()
     _UpdateLatency();
     _SetInputGain();
     _SetOutputGain();
+    _HideModelInfoControl();
   }
   if (mShouldRemoveIR)
   {
@@ -675,6 +805,8 @@ void NeuralAmpModeler::_ApplyDSPStaging()
     mStagedIR = nullptr;
   }
 }
+
+
 
 void NeuralAmpModeler::_DeallocateIOPointers()
 {
@@ -714,6 +846,7 @@ void NeuralAmpModeler::_ResetModelAndIR(const double sampleRate, const int maxBl
     mModel->Reset(sampleRate, maxBlockSize);
   }
 
+
   // IR
   if (mStagedIR != nullptr)
   {
@@ -734,6 +867,52 @@ void NeuralAmpModeler::_ResetModelAndIR(const double sampleRate, const int maxBl
     }
   }
 }
+
+// Hide Model Info Control
+void NeuralAmpModeler::_HideModelInfoControl()
+{
+  if (GetUI())
+  {
+    // Hide the labels
+    IControl* pControl = GetUI()->GetControlWithTag(kCtrlTagModelInfoMetaData);
+    if (pControl)
+    {
+      auto* pModelInfoControl = dynamic_cast<ModelInfoMetaDataControl*>(pControl);
+      if (pModelInfoControl)
+      {
+        pModelInfoControl->ClearModelInfo();
+      }
+    }
+
+    // Hide the icon
+    IControl* pIconControl = GetUI()->GetControlWithTag(kCtrlModelTypeIcons);
+    if (pIconControl)
+    {
+      pIconControl->Hide(true);
+    }
+  }
+}
+void NeuralAmpModeler::_ShowModelInfoControl()
+{
+  if (GetUI())
+  {
+    // Show the metadata control
+    IControl* pControl = GetUI()->GetControlWithTag(kCtrlTagModelInfoMetaData);
+    if (pControl)
+    {
+      // Assuming your SetModelInfo logic handles showing individual labels correctly,
+      // you just need to ensure the parent container is visible.
+      pControl->Hide(false);
+    }
+
+    // Show the icon
+    IControl* pIconControl = GetUI()->GetControlWithTag(kCtrlModelTypeIcons);
+    if (pIconControl)
+    {
+      pIconControl->Hide(false);
+    }
+  }
+
 
 void NeuralAmpModeler::_SetInputGain()
 {

@@ -74,6 +74,7 @@ const iplug::igraphics::IColor NAM_THEMECOLOR(255, 80, 133, 232); // Azure
 const iplug::igraphics::IColor NAM_THEMEFONTCOLOR(255, 242, 242, 242); // Dark White
 const iplug::igraphics::IColor NAM_PWC_DARKFONTCOLOR(255, 42, 42, 42); // Dark Text
 const iplug::igraphics::IColor NAM_PWC_SEMIDARKFONTCOLOR(128, 42, 42, 42); // Dark Text
+const iplug::igraphics::IColor NAM_PWC_NAM_THEMEFONTCOLOR = iplug::igraphics::COLOR_WHITE.WithOpacity(0.5); 
 
 // Misc
 // const iplug::igraphics::IColor MOUSEOVER = NAM_3.WithOpacity(0.3);

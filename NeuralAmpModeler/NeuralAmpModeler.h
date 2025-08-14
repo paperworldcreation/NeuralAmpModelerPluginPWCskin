@@ -12,6 +12,7 @@
 
 #include "IPlug_include_in_plug_hdr.h"
 #include "ISender.h"
+#include <projects/NAMMetadata.h>
 
 
 const int kNumPresets = 1;
@@ -64,7 +65,9 @@ enum ECtrlTags
   kCtrlTagOutputMode,
   kCtrlTagCalibrateInput,
   kCtrlTagInputCalibrationLevel,
-  kNumCtrlTags
+  kNumCtrlTags,
+  kCtrlTagModelInfoMetaData,
+  kCtrlModelTypeIcons
 };
 
 enum EMsgTags
@@ -206,6 +209,9 @@ public:
   bool OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) override;
 
 private:
+    // Store MetaData
+  NAMMetadata mNAMMetadata;
+  
   // Allocates mInputPointers and mOutputPointers
   void _AllocateIOPointers(const size_t nChans);
   // Moves DSP modules from staging area to the main area.
@@ -213,6 +219,7 @@ private:
   // Exists so that we don't try to use a DSP module that's only
   // partially-instantiated.
   void _ApplyDSPStaging();
+  void _HideModelInfoControl();
   // Deallocates mInputPointers and mOutputPointers
   void _DeallocateIOPointers();
   // Fallback that just copies inputs to outputs if mDSP doesn't hold a model.
@@ -267,6 +274,16 @@ private:
   // Assume _ProcessInput() and _ProcessOutput() were run immediately before.
   void _UpdateMeters(iplug::sample** inputPointer, iplug::sample** outputPointer, const size_t nFrames,
                      const size_t nChansIn, const size_t nChansOut);
+
+
+  //Icons
+  std::unique_ptr<iplug::igraphics::ISVG> mIconAmpSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconAmpPedalSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconPedalSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconAmpCabSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconAmpCabPedalSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconPreampSVG;
+  std::unique_ptr<iplug::igraphics::ISVG> mIconStudioSVG;
 
   // Member data
 

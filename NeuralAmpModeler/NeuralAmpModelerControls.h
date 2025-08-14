@@ -136,7 +136,7 @@ public:
   {
     const IBitmap& bitmapToDraw = (GetValue() < 0.5) ? mBitmapOff : mBitmapOn;
     const IRECT centeredBounds = mWidgetBounds.GetCentredInside(bitmapToDraw);
-    g.DrawBitmap(bitmapToDraw, centeredBounds, 0, 0, nullptr);
+    g.DrawBitmap(bitmapToDraw, centeredBounds, 0, 1, nullptr);
   }
 
 private:
@@ -455,6 +455,7 @@ public:
         {
           std::string label(std::string("(FAILED) ") + std::string(mFileNameControl->GetLabelStr()));
           mFileNameControl->SetLabelAndTooltip(label.c_str());
+
           SetBrowserState(NAMBrowserState::Empty);
         }
         break;
@@ -627,10 +628,10 @@ public:
   {
     AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 0), "MODEL INFORMATION:", mStyle));
     AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 1), "", mStyle), mControlNames.sampleRate);
-     AddNamedChildControl(
-       new IVLabelControl(GetRECT().SubRectVertical(8, 2), "", mStyle), mControlNames.inputCalibrationLevel);
-     AddNamedChildControl(
-       new IVLabelControl(GetRECT().SubRectVertical(8, 3), "", mStyle), mControlNames.outputCalibrationLevel);
+    AddNamedChildControl(
+      new IVLabelControl(GetRECT().SubRectVertical(8, 2), "", mStyle), mControlNames.inputCalibrationLevel);
+    AddNamedChildControl(
+      new IVLabelControl(GetRECT().SubRectVertical(8, 3), "", mStyle), mControlNames.outputCalibrationLevel);
   };
 
   void SetModelInfo(const ModelInfo& modelInfo)
@@ -651,10 +652,10 @@ public:
     };
 
     SetControlStr("Sample rate", modelInfo.sampleRate, "Hz", mControlNames.sampleRate);
-     SetControlStr(
-       "Input calibration level", modelInfo.inputCalibrationLevel, "dBu", mControlNames.inputCalibrationLevel);
-     SetControlStr(
-       "Output calibration level", modelInfo.outputCalibrationLevel, "dBu", mControlNames.outputCalibrationLevel);
+    SetControlStr(
+      "Input calibration level", modelInfo.inputCalibrationLevel, "dBu", mControlNames.inputCalibrationLevel);
+    SetControlStr(
+      "Output calibration level", modelInfo.outputCalibrationLevel, "dBu", mControlNames.outputCalibrationLevel);
 
     mHasInfo = true;
   };
@@ -664,13 +665,106 @@ private:
   struct
   {
     const std::string sampleRate = "sampleRate";
-     const std::string inputCalibrationLevel = "inputCalibrationLevel";
-     const std::string outputCalibrationLevel = "outputCalibrationLevel";
+    const std::string inputCalibrationLevel = "inputCalibrationLevel";
+    const std::string outputCalibrationLevel = "outputCalibrationLevel";
   } mControlNames;
   // Do I have info?
   bool mHasInfo = false;
 };
 
+// Model Info Metatags
+// Model Info Metatags
+class ModelInfoMetaDataControl : public IContainerBaseWithNamedChildren
+{
+public:
+  ModelInfoMetaDataControl(const IRECT& bounds, const IVStyle& style)
+  : IContainerBaseWithNamedChildren(bounds)
+  , mStyle(style) {};
+
+  void ClearModelInfo()
+  {
+    // Clear all the labels
+    static_cast<IVLabelControl*>(GetNamedChild(mControlNames.gearModel))->SetStr("");
+    static_cast<IVLabelControl*>(GetNamedChild(mControlNames.gearMake))->SetStr("");
+    static_cast<IVLabelControl*>(GetNamedChild(mControlNames.toneType))->SetStr("");
+    static_cast<IVLabelControl*>(GetNamedChild(mControlNames.modeledBy))->SetStr("");
+    mHasInfo = false;
+    // Also hide the control when cleared
+    Hide(true);
+  };
+
+  void Hide(bool hide) override
+  {
+    // Don't show me unless I have info to show!
+    IContainerBase::Hide(hide || (!mHasInfo));
+  };
+
+  void OnAttached() override
+  {
+
+    // Add the labels when the control is attached to the graphics context.
+    // Using 4 rows for 4 labels.
+    AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(4, 0), "",
+                         mStyle.WithValueText(IText(12, COLOR_WHITE, "Roboto-Bold").WithAlign(EAlign::Near))),
+                         mControlNames.gearMake);
+
+    AddNamedChildControl(
+      new IVLabelControl(GetRECT().SubRectVertical(4, 1), "",
+                         mStyle.WithValueText(IText(12, COLOR_WHITE, "Roboto-Bold").WithAlign(EAlign::Near))),
+      mControlNames.gearModel);
+    AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(4, 2), "", mStyle), mControlNames.toneType);
+    AddNamedChildControl(new IVLabelControl(GetRECT().SubRectVertical(4, 3), "", mStyle), mControlNames.modeledBy);
+  };
+
+  // The new method to set the info from the NAMMetadata object
+  void SetModelInfo(const NAMMetadata& metadata)
+  {
+    // Helper lambda to format, set string, and manage visibility for each label
+    auto SetControlStrAndVisibility = [&](const std::string& label, const std::string& value,
+                                          const std::string& childName) {
+      auto* labelControl = static_cast<IVLabelControl*>(GetNamedChild(childName));
+
+      // Check if the value is meaningful (not empty or "n/a")
+      if (!value.empty() && value != "n/a")
+      {
+        std::stringstream ss;
+        ss << label << "" << value;
+        labelControl->SetStr(ss.str().c_str());
+        labelControl->Hide(false); // Show the label
+      }
+      else
+      {
+        labelControl->SetStr(""); // Set the string to empty
+        labelControl->Hide(true); // Hide the label
+      }
+    };
+
+    SetControlStrAndVisibility("", metadata.GetGearMake(), mControlNames.gearMake);
+    SetControlStrAndVisibility("", metadata.GetGearModel(), mControlNames.gearModel);
+    SetControlStrAndVisibility("", metadata.GetToneType(), mControlNames.toneType);
+    SetControlStrAndVisibility("By ", metadata.GetModeledBy(), mControlNames.modeledBy);
+
+    // After setting all labels, check if any of them are visible to determine
+    // if the parent container should be shown.
+    mHasInfo = !metadata.GetGearMake().empty() || !metadata.GetGearModel().empty() || !metadata.GetToneType().empty()
+               || !metadata.GetModeledBy().empty();
+
+    // Show/hide the main container based on whether any info is present.
+    Hide(false);
+  }
+
+private:
+  const IVStyle mStyle;
+  struct
+  {
+    const std::string gearMake = "gearMake";
+    const std::string gearModel = "gearModel";
+    const std::string toneType = "toneType";
+    const std::string modeledBy = "modeledBy";
+  } mControlNames;
+  // Do I have info?
+  bool mHasInfo = false;
+};
 class OutputModeControl : public IVRadioButtonControl
 {
 public:
@@ -706,8 +800,8 @@ class NAMSettingsPageControl : public IContainerBaseWithNamedChildren
 {
 public:
   NAMSettingsPageControl(const IRECT& bounds, const IBitmap& bitmap, const IBitmap& inputLevelBackgroundBitmap,
-                         const IBitmap& switchBitmap, const IBitmap& bitmapOff, const IBitmap& bitmapOn, ISVG closeSVG, const IVStyle& style,
-                         const IVStyle& radioButtonStyle)
+                         const IBitmap& switchBitmap, const IBitmap& bitmapOff, const IBitmap& bitmapOn, ISVG closeSVG,
+                         const IVStyle& style, const IVStyle& radioButtonStyle)
   : IContainerBaseWithNamedChildren(bounds)
   , mAnimationTime(0)
   , mBitmap(bitmap)
@@ -791,8 +885,6 @@ public:
     const auto titleArea = GetRECT().GetPadded(-(pad + 10.0f)).GetFromTop(50.0f);
     AddNamedChildControl(new IVLabelControl(titleArea, "SETTINGS", titleStyle), mControlNames.title);
 
-    
-    
 
     // Attach input/output calibration controls
     {
@@ -818,7 +910,6 @@ public:
       const float spacing = 10.f;
       auto inputSwitchArea = inputLevelArea.GetVShifted(inputLevelArea.H() + spacing);
       inputSwitchArea.B = inputSwitchArea.T + switchHeight;
-      
 
 
       // --- Right side controls (Output) ---
@@ -854,8 +945,8 @@ public:
     const float halfWidth = PLUG_WIDTH / 2.0f - pad;
     const auto bottomArea = GetRECT().GetPadded(-pad).GetFromBottom(78.0f);
     const float lineHeight = 15.0f;
-    //const auto modelInfoArea =bottomArea.GetFromLeft(200.0f).GetFromTop(4 * lineHeight).GetVShifted(-100.f);    ;
-    //const auto aboutArea = bottomArea.GetFromRight(halfWidth +100.0f).GetFromTop(7 * lineHeight).GetVShifted(-100.f);
+    // const auto modelInfoArea =bottomArea.GetFromLeft(200.0f).GetFromTop(4 * lineHeight).GetVShifted(-100.f);    ;
+    // const auto aboutArea = bottomArea.GetFromRight(halfWidth +100.0f).GetFromTop(7 * lineHeight).GetVShifted(-100.f);
 
     // Define the aboutArea first, as its position on the right is the anchor.
     const auto aboutArea = bottomArea.GetFromRight(halfWidth + 50.0f).GetFromTop(7 * lineHeight).GetVShifted(-100.f);
@@ -985,8 +1076,8 @@ private:
       AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 5), "", mStyle));
       AddChildControl(new IVLabelControl(GetRECT().SubRectVertical(8, 6), "Skin by PWC Profiles", mStyle));
       AddChildControl(new IURLControl(GetRECT().SubRectVertical(8, 7), "www.pwc-profiles.com",
-                                      "https://pwc-profiles.com", mText, COLOR_TRANSPARENT,
-                                      PluginColors::HELP_TEXT_MO, PluginColors::HELP_TEXT_CLICKED));
+                                      "https://pwc-profiles.com", mText, COLOR_TRANSPARENT, PluginColors::HELP_TEXT_MO,
+                                      PluginColors::HELP_TEXT_CLICKED));
     };
 
   private:
