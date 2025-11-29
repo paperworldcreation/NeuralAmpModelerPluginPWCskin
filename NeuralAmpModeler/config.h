@@ -1,18 +1,18 @@
-#define PLUG_NAME "NeuralAmpModelerPWCprofilesSkin"
+#define PLUG_NAME "NeuralAmpModelerPWCskin"
 #define PLUG_MFR "PWC Profiles"
-#define PLUG_VERSION_HEX 0x0000070d
-#define PLUG_VERSION_STR "0.7.13"
+#define PLUG_VERSION_HEX 0x00007010
+#define PLUG_VERSION_STR "0.7.16"
 #define PLUG_UNIQUE_ID 'p7hV'
 #define PLUG_MFR_ID 'PWCp'
 #define PLUG_URL_STR "https://www.pwc-profiles.com/NAM"
 #define PLUG_EMAIL_STR "spam@me.com"
 #define PLUG_COPYRIGHT_STR "Copyright 2025 PWC Profiles"
 #define PLUG_CLASS_NAME NeuralAmpModeler
-#define BUNDLE_NAME "NeuralAmpModelerPWCprofilesSkin"
+#define BUNDLE_NAME "NeuralAmpModelerPWCSkin"
 #define BUNDLE_MFR "PWC Profiles"
 #define BUNDLE_DOMAIN "com"
 
-#define SHARED_RESOURCES_SUBPATH "NeuralAmpModeler"
+#define SHARED_RESOURCES_SUBPATH "NeuralAmpModelerPWCSkin"
 
 #ifdef APP_API
   #define PLUG_CHANNEL_IO "1-2"
@@ -25,7 +25,7 @@
 #define PLUG_DOES_MIDI_IN 0
 #define PLUG_DOES_MIDI_OUT 0
 #define PLUG_DOES_MPE 0
-#define PLUG_DOES_STATE_CHUNKS 0
+#define PLUG_DOES_STATE_CHUNKS 1
 #define PLUG_HAS_UI 1
 #define PLUG_WIDTH 1024	
 #define PLUG_HEIGHT 576
@@ -44,7 +44,7 @@
 #define AAX_TYPE_IDS 'ITP1'
 #define AAX_TYPE_IDS_AUDIOSUITE 'ITA1'
 #define AAX_PLUG_MFR_STR "Acme"
-#define AAX_PLUG_NAME_STR "NeuralAmpModeler\nIPEF"
+#define AAX_PLUG_NAME_STR "NeuralAmpModelerPWCskin\nIPEF"
 #define AAX_PLUG_CATEGORY_STR "Effect"
 #define AAX_DOES_AUDIOSUITE 1
 
@@ -95,9 +95,7 @@
 #define INPUTLEVELBACKGROUND_FN "InputLevelBackground.png"
 #define INPUTLEVELBACKGROUND2X_FN "InputLevelBackground@2x.png"
 #define INPUTLEVELBACKGROUND3X_FN "InputLevelBackground@3x.png"
-#define LINES_FN "Lines.png"
-#define LINES2X_FN "Lines@2x.png"
-#define LINES3X_FN "Lines@3x.png"
+// SLIDESWITCHES
 #define SLIDESWITCHHANDLE_FN "SlideSwitchHandle.png"
 #define SLIDESWITCHHANDLE2X_FN "SlideSwitchHandle@2x.png"
 #define SLIDESWITCHHANDLE3X_FN "SlideSwitchHandle@3x.png"
@@ -107,6 +105,8 @@
 #define SWITCHON_FN "SwitchOn.png"
 #define SWITCHON2X_FN "SwitchOn@2x.png"
 #define SWITCHON3X_FN "SwitchOn@3x.png"
+
+//KNOBS
 #define KNOB_BRASS_FN "KnobBrass.png"
 #define KNOB_BRASS2X_FN "KnobBrass@2x.png"
 #define KNOB_BRASS3X_FN "KnobBrass@3x.png"
@@ -114,6 +114,7 @@
 #define KNOB_SILVER2X_FN "KnobSilver@2x.png"
 #define KNOB_SILVER3X_FN "KnobSilver@3x.png"
 
+//METERS
 #define METERBACKGROUND_FN "MeterBackground.png"
 #define METERBACKGROUND2X_FN "MeterBackground@2x.png"
 #define METERBACKGROUND3X_FN "MeterBackground@3x.png"

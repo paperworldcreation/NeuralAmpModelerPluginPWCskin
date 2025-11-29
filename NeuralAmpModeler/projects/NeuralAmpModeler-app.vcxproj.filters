@@ -91,6 +91,7 @@
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\util.cpp" />
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\wavenet.cpp" />
     <ClCompile Include="NAMMetadata.cpp" />
+    <ClCompile Include="..\NeuralAmpModelerControls.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\NeuralAmpModeler.h" />

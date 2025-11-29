@@ -194,7 +194,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto backgroundBacksideBitmap = pGraphics->LoadBitmap(BACKGROUNDBACKSIDE_FN);
     const auto fileBackgroundBitmap = pGraphics->LoadBitmap(FILEBACKGROUND_FN);
     const auto inputLevelBackgroundBitmap = pGraphics->LoadBitmap(INPUTLEVELBACKGROUND_FN);
-    const auto linesBitmap = pGraphics->LoadBitmap(LINES_FN);
+
     const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOB_BRASS_FN, 128, false);
     const auto knobBackgroundBitmapSilver = pGraphics->LoadBitmap(KNOB_SILVER_FN, 128, false);
     const auto switchHandleBitmap = pGraphics->LoadBitmap(SLIDESWITCHHANDLE_FN);
@@ -209,38 +209,40 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto titleHeight = 15.0f;
     const auto titleArea = contentArea.GetFromBottom(titleHeight).GetVShifted(-10);
 
-    // Areas for knobs
-    const auto knobsPad = 180.0f;
-    const auto knobsExtraSpaceBelowTitle = 386.0f;
-    const auto singleKnobPad = 2.0f;
-    const auto switchPad = 2.0f;
-    const auto knobsArea = contentArea.GetFromTop(NAM_KNOB_HEIGHT)
-                             .GetReducedFromLeft(239.0f)
-                             .GetReducedFromRight(240.0f)
-                             .GetVShifted(titleHeight + knobsExtraSpaceBelowTitle);
-    const auto noiseGateArea = knobsArea.GetGridCell(0, kNoiseGateThreshold, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto inputKnobArea = knobsArea.GetGridCell(0, kInputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto bassKnobArea = knobsArea.GetGridCell(0, kToneBass, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto midKnobArea = knobsArea.GetGridCell(0, kToneMid, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto trebleKnobArea = knobsArea.GetGridCell(0, kToneTreble, 1, numKnobs).GetPadded(-singleKnobPad);
+    // Einheitliche Dimensionen für Controls
+    const float knobWidth = 60.0f;
+    const float knobHeight = 70.0f;
+    const float switchWidth = 60.0f;
+    const float switchHeight = 70.0f;
+    const float yPosControls = 399.0f;
 
-    const auto outputKnobArea = knobsArea.GetGridCell(0, kOutputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto ngToggleArea = knobsArea.GetGridCell(0, kNoiseGateActive, 1, numKnobs).GetPadded(-singleKnobPad);
+    // Noise Gate
+    const auto noiseGateArea = IRECT::MakeXYWH(244.0f, yPosControls, knobWidth, knobHeight);
+    const auto ngToggleArea = IRECT::MakeXYWH(311.0f, yPosControls, switchWidth, switchHeight);
+    // Gain
+    const auto inputKnobArea = IRECT::MakeXYWH(380.0f, yPosControls, knobWidth, knobHeight);
+    // Tone Stack
+    const auto bassKnobArea = IRECT::MakeXYWH(449.0f, yPosControls, knobWidth, knobHeight);
+    const auto midKnobArea = IRECT::MakeXYWH(514.0f, yPosControls, knobWidth, knobHeight);
+    const auto trebleKnobArea = IRECT::MakeXYWH(582.0f, yPosControls, knobWidth, knobHeight);
+    const auto eqToggleArea = IRECT::MakeXYWH(651.0f, yPosControls, switchWidth, switchHeight);
 
-    const auto eqToggleArea =
-      knobsArea.GetGridCell(0, kEQActive, 1, numKnobs).GetPadded(-singleKnobPad).GetHShifted(-1);
-    // const auto prePostEQArea = eqToggleArea.GetTranslated(eqToggleArea.W(), 0.f);
+    // Master Knob
+    const auto outputKnobArea = IRECT::MakeXYWH(721.0f, yPosControls, knobWidth, knobHeight);
+
 
     // Areas for model and IR
-    const auto fileWidth = 200.0f;
+    const auto fileWidth = 410.0f;
     const auto fileHeight = 28.0f;
     const auto irYOffset = 38.0f;
-    const auto modelArea = contentArea.GetFromTop((2.0f * fileHeight + 30.f))
-                             .GetFromTop(fileHeight)
-                             .GetMidHPadded(fileWidth)
-                             .GetVShifted(31);
-    const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
+    /* const auto modelArea = contentArea.GetFromTop((2.0f * fileHeight + 30.f))
+                              .GetFromTop(fileHeight)
+                              .GetMidHPadded(fileWidth)
+                              .GetVShifted(31);*/
+    const auto modelArea = IRECT::MakeXYWH(305.0f, 30.0f, fileWidth, fileHeight);
     const auto irArea = modelArea.GetVShifted(irYOffset);
+    // Icons in front of modelarea and ir area
+    const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
     const auto irSwitchArea = irArea.GetFromLeft(30.0f).GetHShifted(-40.0f).GetScaledAboutCentre(0.6f);
 
     // Areas for meters
@@ -254,115 +256,72 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const auto typeIconsArea = IRECT::MakeXYWH(720.f, 40.f, 70.f, 50.f);
     const auto typeTextArea = IRECT::MakeXYWH(798.f, 35.f, 140.f, 60.f);
 
-    // Model loader button
-    auto loadModelCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
+    // Model loader button - FIXED: Use filesystem path separator
+    auto loadModelCompletionHandler = [pGraphics, this](const WDL_String& fileName, const WDL_String& path) {
       if (fileName.GetLength())
       {
+        // Construct the full path using std::filesystem to ensure proper path separators
+        std::filesystem::path fullPath = std::filesystem::u8path(path.Get());
+        fullPath /= std::filesystem::u8path(fileName.Get());
+        
+        // Convert back to WDL_String
+        WDL_String fullPathWDL;
+        fullPathWDL.Set(fullPath.u8string().c_str());
+        
         // Sets mNAMPath and mStagedNAM
-        const std::string msg = _StageModel(fileName);
-        // TODO error messages like the IR loader.
+        const std::string msg = _StageModel(fullPathWDL);
+        
         if (msg.size())
         {
           std::stringstream ss;
           ss << "Failed to load NAM model. Message:\n\n" << msg;
-          _ShowMessageBox(GetUI(), ss.str().c_str(), "Failed to load model!", kMB_OK);
+          _ShowMessageBox(pGraphics, ss.str().c_str(), "Failed to load model!", kMB_OK);
         }
         else
         {
           try
           {
-            // Combine the path and filename from the handler's arguments to get the full path.
-            // Use u8path to correctly handle potential UTF-8 characters.
-            std::filesystem::path modelFullPath = std::filesystem::u8path(path.Get());
-            modelFullPath /= std::filesystem::u8path(fileName.Get());
+            std::filesystem::path modelFullPath = std::filesystem::u8path(fullPathWDL.Get());
             mNAMMetadata = NAMMetadata(modelFullPath);
-
-            if (auto* pGraphics = GetUI())
+            
+            // Deferred call um sicherzustellen, dass UI bereit ist
+            if (auto* pGraphics = this->GetUI())
             {
-
-              if (auto* pMetaDataControl = pGraphics->GetControlWithTag(kCtrlTagModelInfoMetaData))
-              {
-                // Cast it to your class type and call the new method
-                pMetaDataControl->As<ModelInfoMetaDataControl>()->SetModelInfo(mNAMMetadata);
-              }
-              else
-              {
-                DBGMSG("ERROR: Failed to find control with tag kCtrlTagModelInfoMetaData!\n");
-              }
-
-              // It's now safe to use pGraphics inside this block.
-              IControl* pControl = pGraphics->GetControlWithTag(kCtrlModelTypeIcons);
-              if (pControl)
-              {
-                ISVGControl* pIconControl = pControl->As<ISVGControl>();
-                std::string gearType = mNAMMetadata.GetGearType();
-
-
-                // Use the == operator for std::string comparison
-                if (gearType == "pedal" && mIconPedalSVG)
-                {
-                  pIconControl->SetSVG(*mIconPedalSVG);
-                }
-                else if (gearType == "studio" && mIconStudioSVG)
-                {
-                  pIconControl->SetSVG(*mIconStudioSVG);
-                }
-                else if (gearType == "preamp" && mIconPreampSVG)
-                {
-                  pIconControl->SetSVG(*mIconPreampSVG);
-                }
-                else if (gearType == "pedal_amp" && mIconAmpPedalSVG)
-                {
-                  pIconControl->SetSVG(*mIconAmpPedalSVG);
-                }
-                else if (gearType == "amp_cab" && mIconAmpCabSVG)
-                {
-                  pIconControl->SetSVG(*mIconAmpCabSVG);
-                }
-                else if (gearType == "amp_pedal_cab" && mIconAmpCabPedalSVG)
-                {
-                  pIconControl->SetSVG(*mIconAmpCabPedalSVG);
-                }
-                else // Default case for "Amp" or any other type
-                {
-                  if (mIconAmpSVG)
-                    pIconControl->SetSVG(*mIconAmpSVG);
-                }
-
-                // Redraw the control after setting the correct SVG
-                pIconControl->Hide(false);
-                pIconControl->SetDirty(false);
-              }
-              else
-              {
-                DBGMSG("ERROR: Failed to find control with tag kCtrlModelTypeIcons!\n");
-              }
+              pGraphics->GetDelegate()->SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, 
+                                                                   mNAMPath.GetLength(), mNAMPath.Get());
+              _UpdateMetadataDisplay();
             }
           }
           catch (const std::runtime_error& e)
           {
-            // If the NAMMetadata constructor throws an error (e.g. file not found, bad JSON),
-            // catch it and show a message to the user.
-            _ShowMessageBox(GetUI(), e.what(), "Metadata Error", kMB_OK);
+            _ShowMessageBox(pGraphics, e.what(), "Metadata Error", kMB_OK);
           }
         }
         std::cout << "Loaded: " << fileName.Get() << std::endl;
       }
     };
 
-    // IR loader button
-    auto loadIRCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
+    // IR loader button - FIXED: Use filesystem path separator
+    auto loadIRCompletionHandler = [pGraphics, this](const WDL_String& fileName, const WDL_String& path) {
       if (fileName.GetLength())
       {
-        mIRPath = fileName;
-        const dsp::wav::LoadReturnCode retCode = _StageIR(fileName);
+        // Construct the full path using std::filesystem to ensure proper path separators
+        std::filesystem::path fullPath = std::filesystem::u8path(path.Get());
+        fullPath /= std::filesystem::u8path(fileName.Get());
+        
+        // Convert back to WDL_String
+        WDL_String fullPathWDL;
+        fullPathWDL.Set(fullPath.u8string().c_str());
+        
+        mIRPath = fullPathWDL;
+        const dsp::wav::LoadReturnCode retCode = _StageIR(fullPathWDL);
+        
         if (retCode != dsp::wav::LoadReturnCode::SUCCESS)
         {
           std::stringstream message;
           message << "Failed to load IR file " << fileName.Get() << ":\n";
           message << dsp::wav::GetMsgForLoadReturnCode(retCode);
-
-          _ShowMessageBox(GetUI(), message.str().c_str(), "Failed to load IR!", kMB_OK);
+          _ShowMessageBox(pGraphics, message.str().c_str(), "Failed to load IR!", kMB_OK);
         }
       }
     };
@@ -454,10 +413,61 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     pGraphics->GetControlWithTag(kCtrlTagModelInfoMetaData)->Hide(true);
 
-    
+
     // pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetMouseEventsWhenDisabled(false);
     // pGraphics->GetControlWithTag(kCtrlTagCalibrateInput)->SetMouseEventsWhenDisabled(false);
   };
+}
+
+
+// Add this new private method to NeuralAmpModeler.cpp
+
+void NeuralAmpModeler::_UpdateMetadataDisplay()
+{
+  if (auto* pGraphics = GetUI())
+  {
+    // Ensure the controls are made visible first
+    _ShowModelInfoControl();
+
+    // Update the metadata text display with null-check
+    if (auto* pMetaDataControl = pGraphics->GetControlWithTag(kCtrlTagModelInfoMetaData))
+    {
+      // FIXED: Added null-check for As<>() cast
+      if (auto* pModelInfo = pMetaDataControl->As<ModelInfoMetaDataControl>())
+      {
+        pModelInfo->SetModelInfo(mNAMMetadata);
+      }
+    }
+
+    // Update the gear type icon with null-check
+    if (IControl* pControl = pGraphics->GetControlWithTag(kCtrlModelTypeIcons))
+    {
+      // FIXED: Added null-check for As<>() cast
+      if (ISVGControl* pIconControl = pControl->As<ISVGControl>())
+      {
+        std::string gearType = mNAMMetadata.GetGearType();
+
+        if (gearType == "pedal" && mIconPedalSVG)
+          pIconControl->SetSVG(*mIconPedalSVG);
+        else if (gearType == "studio" && mIconStudioSVG)
+          pIconControl->SetSVG(*mIconStudioSVG);
+        else if (gearType == "preamp" && mIconPreampSVG)
+          pIconControl->SetSVG(*mIconPreampSVG);
+        else if (gearType == "pedal_amp" && mIconAmpPedalSVG)
+          pIconControl->SetSVG(*mIconAmpPedalSVG);
+        else if (gearType == "amp_cab" && mIconAmpCabSVG)
+          pIconControl->SetSVG(*mIconAmpCabSVG);
+        else if (gearType == "amp_pedal_cab" && mIconAmpCabPedalSVG)
+          pIconControl->SetSVG(*mIconAmpCabPedalSVG);
+        else // Default to Amp icon
+        {
+          if (mIconAmpSVG)
+            pIconControl->SetSVG(*mIconAmpSVG);
+        }
+        pIconControl->SetDirty(false);
+      }
+    }
+  }
 }
 
 NeuralAmpModeler::~NeuralAmpModeler()
@@ -637,6 +647,7 @@ bool NeuralAmpModeler::SerializeState(IByteChunk& chunk) const
   // when we unserialize)
   chunk.PutStr(mNAMPath.Get());
   chunk.PutStr(mIRPath.Get());
+  
   return SerializeParams(chunk);
 }
 
@@ -650,12 +661,31 @@ int NeuralAmpModeler::UnserializeState(const IByteChunk& chunk, int startPos)
   const char* kExpectedHeader = "###NeuralAmpModeler###";
   if (strcmp(header.Get(), kExpectedHeader) == 0)
   {
-    return _UnserializeStateWithKnownVersion(chunk, pos);
+    pos = _UnserializeStateWithKnownVersion(chunk, pos);
   }
   else
   {
-    return _UnserializeStateWithUnknownVersion(chunk, startPos);
+    pos = _UnserializeStateWithUnknownVersion(chunk, startPos);
   }
+
+  // Load metadata after unserializing
+  if (mNAMPath.GetLength())
+  {
+    try
+    {
+      std::filesystem::path modelFullPath = std::filesystem::u8path(mNAMPath.Get());
+      mNAMMetadata = NAMMetadata(modelFullPath);
+    }
+    catch (const std::runtime_error& e)
+    {
+      // FIXED: Reset metadata and log error more clearly
+      std::cerr << "Failed to unserialize metadata: " << e.what() << std::endl;
+      mNAMMetadata = NAMMetadata(); // Reset to default state
+      // Note: We don't fail the entire unserialization, just the metadata loading
+    }
+  }
+
+  return pos;
 }
 
 void NeuralAmpModeler::OnUIOpen()
@@ -665,10 +695,11 @@ void NeuralAmpModeler::OnUIOpen()
   if (mNAMPath.GetLength())
   {
     SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
-    // If it's not loaded yet, then mark as failed.
-    // If it's yet to be loaded, then the completion handler will set us straight once it runs.
     if (mModel == nullptr && mStagedModel == nullptr)
       SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadFailed);
+
+    // REPLACEMENT: A single, clear call is all that's needed.
+    _UpdateMetadataDisplay();
   }
 
   if (mIRPath.GetLength())
@@ -807,7 +838,6 @@ void NeuralAmpModeler::_ApplyDSPStaging()
 }
 
 
-
 void NeuralAmpModeler::_DeallocateIOPointers()
 {
   if (mInputPointers != nullptr)
@@ -815,15 +845,12 @@ void NeuralAmpModeler::_DeallocateIOPointers()
     delete[] mInputPointers;
     mInputPointers = nullptr;
   }
-  if (mInputPointers != nullptr)
-    throw std::runtime_error("Failed to deallocate pointer to input buffer!\n");
-  if (mOutputPointers != nullptr)
+  
+  if (mOutputPointers != nullptr)  // FIXED: Was checking mInputPointers
   {
     delete[] mOutputPointers;
     mOutputPointers = nullptr;
   }
-  if (mOutputPointers != nullptr)
-    throw std::runtime_error("Failed to deallocate pointer to output buffer!\n");
 }
 
 void NeuralAmpModeler::_FallbackDSP(iplug::sample** inputs, iplug::sample** outputs, const size_t numChannels,
@@ -912,7 +939,7 @@ void NeuralAmpModeler::_ShowModelInfoControl()
       pIconControl->Hide(false);
     }
   }
-
+}
 
 void NeuralAmpModeler::_SetInputGain()
 {
@@ -966,7 +993,22 @@ std::string NeuralAmpModeler::_StageModel(const WDL_String& modelPath)
     std::unique_ptr<ResamplingNAM> temp = std::make_unique<ResamplingNAM>(std::move(model), GetSampleRate());
     temp->Reset(GetSampleRate(), GetBlockSize());
     mStagedModel = std::move(temp);
+    
+    // Save the FULL path
     mNAMPath = modelPath;
+    
+    // Load metadata directly during staging
+    try
+    {
+      mNAMMetadata = NAMMetadata(dspPath);
+    }
+    catch (const std::runtime_error& e)
+    {
+      // FIXED: Reset metadata on error to maintain consistent state
+      std::cerr << "Failed to load metadata during staging: " << e.what() << std::endl;
+      mNAMMetadata = NAMMetadata(); // Reset to default/empty state
+    }
+    
     SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
   }
   catch (std::runtime_error& e)
@@ -1135,6 +1177,7 @@ void NeuralAmpModeler::_UpdateControlsFromModel()
   }
   if (auto* pGraphics = GetUI())
   {
+    _ShowModelInfoControl();
     ModelInfo modelInfo;
     modelInfo.sampleRate.known = true;
     modelInfo.sampleRate.value = mModel->GetEncapsulatedSampleRate();

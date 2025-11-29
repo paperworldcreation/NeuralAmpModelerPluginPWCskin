@@ -592,6 +592,8 @@ private:
 }; // class IContainerBaseWithNamedChildren
 
 
+void _UpdateMetadataDisplay(); 
+
 struct PossiblyKnownParameter
 {
   bool known = false;

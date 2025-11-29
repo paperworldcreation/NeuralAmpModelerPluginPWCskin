@@ -30,26 +30,22 @@ public:
 
 enum EParams
 {
-  // These need to be the first ones because I use their indices to place
-  // their rects in the GUI.
-
-  kNoiseGateThreshold = 0,  
-  kNoiseGateActive,
-  kInputLevel,
+  // WICHTIG: Diese Reihenfolge MUSS mit der Initialisierungsreihenfolge 
+  // in NeuralAmpModeler.cpp übereinstimmen!
+  
+  kInputLevel = 0,
   kToneBass,
   kToneMid,
   kToneTreble,
-  kEQActive,
-
   kOutputLevel,
-
-  // The rest is fine though. 
+  kNoiseGateThreshold,
+  kNoiseGateActive,
+  kEQActive,
+  kPrePostEQ,
+  kOutputMode,
   kIRToggle,
-  // Input calibration
   kCalibrateInput,
   kInputCalibrationLevel,
-  kPrePostEQ, // Pre or Post EQ
-  kOutputMode,
   kNumParams
 };
 
@@ -219,7 +215,10 @@ private:
   // Exists so that we don't try to use a DSP module that's only
   // partially-instantiated.
   void _ApplyDSPStaging();
+  // Shows or hides the model info control.
   void _HideModelInfoControl();
+  void _ShowModelInfoControl();
+  void _UpdateMetadataDisplay(); 
   // Deallocates mInputPointers and mOutputPointers
   void _DeallocateIOPointers();
   // Fallback that just copies inputs to outputs if mDSP doesn't hold a model.

@@ -406,6 +406,7 @@
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\lstm.cpp" />
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\util.cpp" />
     <ClCompile Include="..\..\NeuralAmpModelerCore\NAM\wavenet.cpp" />
+    <ClCompile Include="..\NeuralAmpModelerControls.cpp" />
     <ClCompile Include="..\ToneStack.cpp" />
     <ClCompile Include="NAMMetadata.cpp" />
   </ItemGroup>
